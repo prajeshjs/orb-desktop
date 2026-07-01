@@ -1,0 +1,359 @@
+<!doctype html>
+<html data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>Edit Task</title>
+  <link rel="stylesheet" href="theme.css">
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      padding: 8px;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: var(--text);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-top: 8px;
+      margin-bottom: 2px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      font-size: 13px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .row>div { flex: 1; }
+
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1.5px solid transparent;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { animation: buttonPress 0.15s ease; }
+
+    .btn-primary {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+    }
+    .btn-primary:hover {
+      background: var(--btn-primary-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border-color: var(--btn-secondary-border);
+    }
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    .prio-btn small {
+      display: block;
+      opacity: 0.85;
+      font-weight: 400;
+    }
+  </style>
+</head>
+
+<body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+  <div class="card">
+    <h1>Edit Task</h1>
+
+    <label for="editTaskText">Task</label>
+    <input id="editTaskText" type="text" />
+
+    <label for="editDate" style="margin-top:8px;"><i data-lucide="calendar" class="neon-icon neon-icon-sm"></i> Scheduled Date</label>
+    <input id="editDate" type="date" />
+
+    <div class="row">
+      <div>
+        <label>Time</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <select id="editHour12"></select>
+          <span style="color:var(--text-muted)">:</span>
+          <select id="editMinute">
+            <option>00</option><option>05</option><option>10</option><option>15</option>
+            <option>20</option><option>25</option><option>30</option><option>35</option>
+            <option>40</option><option>45</option><option>50</option><option>55</option>
+          </select>
+          <select id="editAmpm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Reminder Before Task</label>
+        <div style="display:flex; gap:4px;">
+          <select id="editDurationUnit">
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+          </select>
+          <select id="editDurationValue"></select>
+        </div>
+      </div>
+    </div>
+
+    <label>Priority</label>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px;">
+      <button class="tp-prio-btn prio-1" data-q="1">🔴 RED<br><small>Urgent+Important</small></button>
+      <button class="tp-prio-btn prio-2" data-q="2">🔵 BLUE<br><small>Important</small></button>
+      <button class="tp-prio-btn prio-3" data-q="3">🟡 YELLOW<br><small>Urgent</small></button>
+      <button class="tp-prio-btn prio-4" data-q="4">⚪ GRAY<br><small>Low priority</small></button>
+    </div>
+
+    <!-- REPEAT EVERYDAY CHECKBOX -->
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="editRepeatDaily" style="width:auto;margin:0;cursor:pointer;" />
+      <label for="editRepeatDaily" style="display:inline;margin:0;font-size:12px;cursor:pointer;"><i data-lucide="repeat" class="neon-icon neon-icon-sm"></i> Repeat Everyday</label>
+    </div>
+
+    <!-- FOLLOW-UP FREQUENCY DROPDOWN -->
+    <label for="editFollowUpFrequency" style="margin-top:10px;">Follow-up Frequency (minutes)</label>
+    <select id="editFollowUpFrequency">
+      <option value="10">10</option><option value="15">15</option>
+      <option value="20">20</option><option value="25">25</option>
+      <option value="30">30</option><option value="35">35</option>
+      <option value="40">40</option><option value="45">45</option>
+      <option value="50">50</option><option value="55">55</option>
+    </select>
+
+    <input type="hidden" id="editTaskId" />
+
+    <div class="actions">
+      <button class="btn btn-secondary" id="cancelEdit">Cancel</button>
+      <button class="btn btn-primary" id="saveEdit">Save Changes</button>
+    </div>
+  </div>
+
+  <script>
+    const MINUTE_VALUES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+    const HOUR_VALUES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12];
+
+    function populateDurationValues(unit, selectEl, defaultVal) {
+      const values = unit === 'hours' ? HOUR_VALUES : MINUTE_VALUES;
+      selectEl.innerHTML = '';
+      values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+      if (defaultVal !== undefined) selectEl.value = String(defaultVal);
+    }
+
+    const editDurationUnitEl = document.getElementById('editDurationUnit');
+    const editDurationValueEl = document.getElementById('editDurationValue');
+    populateDurationValues('minutes', editDurationValueEl, 10);
+    editDurationUnitEl.addEventListener('change', () => {
+      populateDurationValues(editDurationUnitEl.value, editDurationValueEl);
+    });
+
+    const hourSelect = document.getElementById('editHour12');
+    for (let i = 1; i <= 12; i++) {
+      hourSelect.innerHTML += `<option>${i}</option>`;
+    }
+
+    let currentTask = null;
+    let selectedQuadrant = 1;
+
+    document.querySelectorAll('.tp-prio-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tp-prio-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedQuadrant = parseInt(btn.dataset.q);
+      });
+    });
+
+    window.electronEdit.onData(task => {
+      currentTask = task;
+      document.getElementById('editTaskId').value = task.id;
+      document.getElementById('editTaskText').value = task.task;
+
+      const storedMin = task.duration || 10;
+      const hourVal = storedMin / 60;
+      if (storedMin >= 30 && storedMin % 30 === 0 && HOUR_VALUES.includes(hourVal)) {
+        editDurationUnitEl.value = 'hours';
+        populateDurationValues('hours', editDurationValueEl, hourVal);
+      } else {
+        editDurationUnitEl.value = 'minutes';
+        const closest = MINUTE_VALUES.reduce((prev, curr) => Math.abs(curr - storedMin) < Math.abs(prev - storedMin) ? curr : prev);
+        populateDurationValues('minutes', editDurationValueEl, closest);
+      }
+
+      const [h24Str, m] = task.time.split(':');
+      let h24 = parseInt(h24Str, 10);
+      let ampm = h24 >= 12 ? 'PM' : 'AM';
+      let h12 = h24 % 12;
+      if (h12 === 0) h12 = 12;
+
+      document.getElementById('editHour12').value = String(h12);
+      document.getElementById('editMinute').value = m;
+      document.getElementById('editAmpm').value = ampm;
+
+      const quadrantBtn = document.querySelector(`[data-q="${task.quadrant}"]`);
+      if (quadrantBtn) {
+        document.querySelectorAll('.tp-prio-btn').forEach(b => b.classList.remove('active'));
+        quadrantBtn.classList.add('active');
+        selectedQuadrant = task.quadrant;
+      }
+
+      document.getElementById('editRepeatDaily').checked = task.repeatDaily === 1;
+      document.getElementById('editFollowUpFrequency').value = String(task.follow_up_frequency || 10);
+
+      if (task.dueAt) {
+        const dueDate = new Date(task.dueAt);
+        const yyyy = dueDate.getFullYear();
+        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(dueDate.getDate()).padStart(2, '0');
+        document.getElementById('editDate').value = `${yyyy}-${mm}-${dd}`;
+      }
+    });
+
+    document.getElementById('saveEdit').addEventListener('click', async () => {
+      if (!currentTask) return;
+
+      const taskText = document.getElementById('editTaskText').value.trim();
+      const dUnit = editDurationUnitEl.value;
+      const dVal = parseFloat(editDurationValueEl.value);
+      const duration = dUnit === 'hours' ? Math.round(dVal * 60) : Math.round(dVal);
+      const h12 = parseInt(document.getElementById('editHour12').value, 10);
+      const mStr = document.getElementById('editMinute').value;
+      const ampm = document.getElementById('editAmpm').value;
+
+      if (!taskText || isNaN(duration)) {
+        alert('Please fill task and duration.');
+        return;
+      }
+
+      let h24 = h12;
+      if (ampm === 'PM' && h12 !== 12) h24 += 12;
+      if (ampm === 'AM' && h12 === 12) h24 = 0;
+      const time24 = `${String(h24).padStart(2, '0')}:${mStr}`;
+
+      const taskData = {
+        id: currentTask.id,
+        task: taskText,
+        duration: duration,
+        quadrant: selectedQuadrant,
+        time: time24,
+        date: document.getElementById('editDate').value || null,
+        repeatDaily: document.getElementById('editRepeatDaily').checked ? 1 : 0,
+        followUpFrequency: parseInt(document.getElementById('editFollowUpFrequency').value, 10) || 10,
+        isReopen: currentTask.isReopen
+      };
+
+      window.taskAPI.saveTaskEdit(taskData);
+      window.close();
+    });
+
+    document.getElementById('cancelEdit').addEventListener('click', () => {
+      window.close();
+    });
+  </script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+
+</html>

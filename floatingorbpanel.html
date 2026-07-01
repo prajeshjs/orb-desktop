@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Orb — Quick Panel</title>
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-card);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      /* Animation state */
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+      transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, border-color 0.3s ease;
+    }
+
+    body.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* ── Panel Container ── */
+    .panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 14px 16px;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    /* ── Header ── */
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.3px;
+    }
+
+    .close-btn {
+      width: 24px;
+      height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    /* ── Section ── */
+    .section { flex-shrink: 0; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    /* ── Slider ── */
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+    }
+
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--orb-glow);
+      transition: transform 0.15s;
+    }
+
+    .slider-row input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .slider-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      min-width: 32px;
+      text-align: right;
+    }
+
+    /* ── Window Buttons ── */
+    .window-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .win-btn {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .win-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      border-color: var(--border-hover);
+    }
+
+    .win-btn.open {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-subtle);
+    }
+
+    /* ── Events ── */
+    .events-container {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .events-section {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .events-section-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .events-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .events-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .events-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      transition: border-color 0.2s ease;
+    }
+
+    .event-item:hover {
+      border-color: var(--border-hover);
+    }
+
+    .event-icon {
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .event-info { flex: 1; min-width: 0; }
+
+    .event-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .event-time {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .event-type-badge {
+      font-size: 8px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      background: var(--bg-card);
+    }
+
+    .badge-completed {
+      border-color: rgba(126,201,126,0.3);
+      color: var(--success);
+    }
+
+    .badge-reminder {
+      border-color: var(--border-hover);
+      color: var(--text-secondary);
+    }
+
+    .badge-upcoming {
+      border-color: rgba(212,168,74,0.3);
+      color: var(--warning);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 16px 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+
+    <!-- Header -->
+    <div class="panel-header">
+      <span class="panel-title">
+        <img src="assets/orb-dark.png" class="app-logo dark-logo" alt="Orb">
+        <img src="assets/orb-light.png" class="app-logo light-logo" alt="Orb">
+      </span>
+      <button class="close-btn" id="closeBtn" title="Close"><i data-lucide="x" class="orb-icon"></i></button>
+    </div>
+
+    <!-- Transparency Control -->
+    <div class="section">
+      <div class="section-label">Orb Transparency</div>
+      <div class="slider-row">
+        <input type="range" id="opacitySlider" min="10" max="100" value="100" step="5">
+        <span class="slider-value" id="opacityValue">100%</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Window Buttons -->
+    <div class="section">
+      <div class="section-label">Windows</div>
+      <div class="window-buttons" id="windowButtons">
+        <button class="win-btn" data-win="home"><i data-lucide="home" class="orb-icon"></i> Home</button>
+        <button class="win-btn" data-win="ai"><i data-lucide="bot" class="orb-icon"></i> AI</button>
+        <button class="win-btn" data-win="list"><i data-lucide="clipboard-list" class="orb-icon"></i> List</button>
+        <button class="win-btn" data-win="task"><i data-lucide="file-text" class="orb-icon"></i> Task</button>
+        <button class="win-btn" data-win="calendar"><i data-lucide="calendar" class="orb-icon"></i> Calendar</button>
+        <button class="win-btn" data-win="history"><i data-lucide="bar-chart-2" class="orb-icon"></i> History</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Recent & Upcoming -->
+    <div class="events-container">
+      <div class="events-section">
+        <div class="events-section-header">
+          <span class="events-section-title"><i data-lucide="clock" class="orb-icon sm"></i> Recent</span>
+          <span class="events-badge" id="recentCount">0</span>
+        </div>
+        <div class="events-list" id="recentList">
+          <div class="empty-state">No recent events today</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="events-section">
+        <div class="events-section-header">
+          <span class="events-section-title"><i data-lucide="hourglass" class="orb-icon sm"></i> Upcoming</span>
+          <span class="events-badge" id="upcomingCount">0</span>
+        </div>
+        <div class="events-list" id="upcomingList">
+          <div class="empty-state">No upcoming reminders today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Close Button ──
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      window.orbAPI.closePanel();
+    });
+
+    // ── Opacity Slider ──
+    const slider = document.getElementById('opacitySlider');
+    const valueLabel = document.getElementById('opacityValue');
+
+    (async () => {
+      try {
+        const opacity = await window.orbAPI.getOpacity();
+        const pct = Math.round(opacity * 100);
+        slider.value = pct;
+        valueLabel.textContent = pct + '%';
+      } catch (e) { /* ignore */ }
+    })();
+
+    slider.addEventListener('input', () => {
+      const pct = parseInt(slider.value, 10);
+      valueLabel.textContent = pct + '%';
+      window.orbAPI.setOpacity(pct / 100);
+    });
+
+    // ── Window Buttons ──
+    const windowBtns = document.querySelectorAll('.win-btn');
+
+    function updateWindowStates(states) {
+      windowBtns.forEach(btn => {
+        const name = btn.dataset.win;
+        if (states && states[name]) {
+          btn.classList.add('open');
+        } else {
+          btn.classList.remove('open');
+        }
+      });
+    }
+
+    windowBtns.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const name = btn.dataset.win;
+        await window.orbAPI.toggleWindow(name);
+      });
+    });
+
+    window.orbAPI.onWindowStatesUpdated(updateWindowStates);
+
+    (async () => {
+      try {
+        const states = await window.orbAPI.getWindowStates();
+        updateWindowStates(states);
+      } catch (e) { /* ignore */ }
+    })();
+
+    // ── Task Events ──
+    function formatTime(isoStr) {
+      try {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      } catch (e) { return ''; }
+    }
+
+    function renderRecentEvents(events) {
+      const container = document.getElementById('recentList');
+      const badge = document.getElementById('recentCount');
+      badge.textContent = events.length;
+
+      if (events.length === 0) {
+        container.innerHTML = '<div class="empty-state">No recent events today</div>';
+        return;
+      }
+
+      container.innerHTML = events.map(ev => {
+        const icon = ev.action_type === 'Marked Completed' ? '<i data-lucide="check-circle-2" class="orb-icon sm"></i>' : '<i data-lucide="bell" class="orb-icon sm"></i>';
+        const badgeClass = ev.action_type === 'Marked Completed' ? 'badge-completed' : 'badge-reminder';
+        const badgeText = ev.action_type === 'Marked Completed' ? 'Done' : 'Reminder';
+        return `
+          <div class="event-item">
+            <span class="event-icon">${icon}</span>
+            <div class="event-info">
+              <div class="event-name">${escapeHtml(ev.task_title)}</div>
+              <div class="event-time">${formatTime(ev.timestamp)}</div>
+            </div>
+            <span class="event-type-badge ${badgeClass}">${badgeText}</span>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function renderUpcomingTasks(tasks) {
+      const container = document.getElementById('upcomingList');
+      const badge = document.getElementById('upcomingCount');
+      badge.textContent = tasks.length;
+
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">No upcoming reminders today</div>';
+        return;
+      }
+
+      container.innerHTML = tasks.map(t => {
+        return `
+          <div class="event-item">
+            <span class="event-icon"><i data-lucide="alarm-clock" class="orb-icon sm"></i></span>
+            <div class="event-info">
+              <div class="event-name">${escapeHtml(t.task)}</div>
+              <div class="event-time">Reminder at ${formatTime(t.remindAt)}</div>
+            </div>
+            <span class="event-type-badge badge-upcoming">Upcoming</span>
+          </div>
+        `;
+      }).join('');
+      if (window.lucide) window.lucide.createIcons();
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    async function loadEvents() {
+      try {
+        const data = await window.orbAPI.getTodayEvents();
+        renderRecentEvents(data.recent || []);
+        renderUpcomingTasks(data.upcoming || []);
+      } catch (e) {
+        console.error('Failed to load events:', e);
+      }
+    }
+
+    loadEvents();
+
+    window.orbAPI.onTaskEventsUpdated(() => {
+      loadEvents();
+      window.orbAPI.getWindowStates().then(updateWindowStates).catch(() => {});
+    });
+
+    setInterval(loadEvents, 1000);
+    window.orbAPI.onAnimateIn(() => {
+      document.body.classList.add('show');
+    });
+
+    window.orbAPI.onAnimateOut(() => {
+      document.body.classList.remove('show');
+    });
+    lucide.createIcons();
+  </script>
+</body>
+</html>

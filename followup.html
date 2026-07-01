@@ -1,0 +1,186 @@
+<!doctype html>
+<html data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Task follow-up</title>
+    <link rel="stylesheet" href="theme.css">
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+      * { margin: 0; padding: 0; }
+
+      body {
+        padding: 8px;
+        background: var(--bg-card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: notifSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      .title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--text);
+      }
+
+      .task {
+        font-size: 12px;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        font-size: 11px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        cursor: pointer;
+        white-space: nowrap;
+        font-family: inherit;
+        font-weight: 600;
+        background: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-hover);
+      }
+
+      button:active {
+        animation: buttonPress 0.15s ease;
+      }
+
+      #yesBtn {
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-text);
+        border-color: transparent;
+      }
+      #yesBtn:hover {
+        background: var(--btn-primary-hover);
+      }
+
+      #noBtn {
+        background: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+        border-color: var(--btn-secondary-border);
+      }
+
+      #snoozeBtn {
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border-color: var(--border);
+      }
+
+      #carryOverBtn {
+        background: var(--bg-elevated);
+        color: var(--text-secondary);
+        border-color: var(--border);
+      }
+    </style>
+  </head>
+  <body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="assets/orb-dark.png" class="app-logo dark-logo" alt="Orb" style="height: 14px;">
+        <img src="assets/orb-light.png" class="app-logo light-logo" alt="Orb" style="height: 14px;">
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Orb</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; line-height: 1; margin-top: -6px; cursor: pointer;">...</span>
+        <button id="closeBtn" title="Close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; margin-top: -2px;"><i data-lucide="x" class="neon-icon neon-icon-sm"></i></button>
+      </div>
+    </div>
+    <div class="title" style="font-size: 14px; margin-bottom: 4px; color: var(--text);">Task follow-up</div>
+    <div class="task" id="taskText" style="color: var(--text-secondary); font-weight: normal;"></div>
+    
+    <div class="button-group">
+      <button id="yesBtn">Yes <i data-lucide="check-circle-2" class="neon-icon neon-icon-sm"></i></button>
+      <button id="noBtn">No <i data-lucide="x" class="neon-icon neon-icon-sm"></i></button>
+      <button id="snoozeBtn">Snooze 30m <i data-lucide="alarm-clock" class="neon-icon neon-icon-sm"></i></button>
+      <button id="carryOverBtn">Carry Over →</button>
+    </div>
+
+    <script>
+      let currentTask = null;
+      const closeWindow = () => window.close();
+
+      window.electronFollowup.onData((data) => {
+        const task = data.task || data; // backward compatibility
+        const duration = data.duration || 60000;
+        currentTask = task;
+        document.getElementById('taskText').textContent =
+          `Did you complete: ${task.task}?`;
+      });
+
+      document.getElementById('closeBtn').onclick = closeWindow;
+
+      document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('yesBtn').onclick = () => {
+          window.electronFollowup.action(currentTask.id, 'yes');
+          closeWindow();
+        };
+        document.getElementById('noBtn').onclick = () => {
+          window.electronFollowup.action(currentTask.id, 'no');
+          closeWindow();
+        };
+        document.getElementById('snoozeBtn').onclick = () => {
+          window.electronFollowup.action(currentTask.id, 'snooze');
+          closeWindow();
+        };
+        document.getElementById('carryOverBtn').onclick = () => {
+          if (!currentTask) return;
+          window.electronFollowup.openCarryOverWindow(currentTask);
+        };
+      });
+    </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>

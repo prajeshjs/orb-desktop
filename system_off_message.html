@@ -1,0 +1,149 @@
+<!doctype html>
+<html data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>System Message</title>
+    <link rel="stylesheet" href="theme.css">
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+      * { margin: 0; padding: 0; }
+
+      body {
+        padding: 10px 12px;
+        background: var(--bg-card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: notifSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      .title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .message {
+        font-size: 12px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 8px;
+      }
+
+      .task-info {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1.5px solid transparent;
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .btn:hover {
+        background: var(--btn-primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn:active {
+        animation: buttonPress 0.15s ease;
+      }
+    </style>
+  </head>
+  <body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="assets/orb-dark.png" class="app-logo dark-logo" alt="Orb" style="height: 14px;">
+        <img src="assets/orb-light.png" class="app-logo light-logo" alt="Orb" style="height: 14px;">
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Orb</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; line-height: 1; margin-top: -6px; cursor: pointer;">...</span>
+        <button id="closeBtn" title="Close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; margin-top: -2px;"><i data-lucide="x" class="neon-icon neon-icon-sm"></i></button>
+      </div>
+    </div>
+    <div class="title" style="font-size: 14px; margin-bottom: 4px; color: var(--text);"><i data-lucide="moon" class="neon-icon neon-icon-sm"></i> System Was Off</div>
+    <div class="message" id="message" style="color: var(--text-secondary); font-weight: normal;">Orb was not running and some reminders may have been missed.</div>
+    <div class="task-info" id="taskInfo"></div>
+    <button class="btn" id="okBtn">Got it</button>
+
+    <script>
+      window.electronSystemOffMsg?.onData?.((data) => {
+        if (data && data.message) {
+          document.getElementById('message').textContent = data.message;
+        }
+        if (data && data.task) {
+          document.getElementById('taskInfo').textContent = `Task: ${data.task}`;
+        }
+      });
+
+      document.getElementById('okBtn').onclick = () => {
+        window.close();
+      };
+      
+      document.getElementById('closeBtn').onclick = () => {
+        window.close();
+      };
+
+      const duration = 12000;
+      // auto-close after 12s
+      setTimeout(() => window.close(), duration);
+    </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>

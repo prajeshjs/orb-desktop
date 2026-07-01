@@ -1,0 +1,403 @@
+<!doctype html>
+<html data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>Task List</title>
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      padding: 10px;
+      background: var(--bg);
+      color: var(--text);
+      animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 6px;
+      color: var(--text-secondary);
+    }
+
+    #matrix {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      transition: background 0.2s ease;
+    }
+
+    th {
+      background: var(--table-header-bg);
+      color: var(--text-secondary);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--table-row-hover);
+    }
+
+    .btn {
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1.5px solid transparent;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      font-family: inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { animation: buttonPress 0.15s ease; }
+
+    .btn-complete {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+    }
+    .btn-complete:hover {
+      background: var(--btn-primary-hover);
+    }
+
+    .btn-edit {
+      background: var(--btn-secondary-bg);
+      color: var(--text-secondary);
+      border-color: var(--btn-secondary-border);
+    }
+    .btn-edit:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn-undo {
+      background: var(--btn-secondary-bg);
+      color: var(--text-secondary);
+      border-color: var(--btn-secondary-border);
+    }
+    .btn-undo:hover {
+      background: var(--btn-secondary-hover);
+      border-color: var(--border-hover);
+    }
+
+    .btn-delete {
+      background: var(--btn-danger-bg);
+      color: var(--btn-danger-text);
+      border-color: var(--btn-danger-border);
+    }
+    .btn-delete:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .status-completed {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .status-pending {
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    .status-carried-over {
+      color: var(--warning);
+      font-weight: 600;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Today's Tasks</h1>
+
+  <div id="matrix">
+    <div class="tp-quad tp-quad-1" data-q="1">
+      <strong>🔴 RED — Urgent & Important</strong><br>
+      <small>Do first</small>
+    </div>
+    <div class="tp-quad tp-quad-2" data-q="2">
+      <strong>🔵 BLUE — Important, not urgent</strong><br>
+      <small>Schedule</small>
+    </div>
+    <div class="tp-quad tp-quad-3" data-q="3">
+      <strong>🟡 YELLOW — Urgent, not important</strong><br>
+      <small>Delegate</small>
+    </div>
+    <div class="tp-quad tp-quad-4" data-q="4">
+      <strong>⚪ GRAY — Low priority</strong><br>
+      <small>Eliminate / later</small>
+    </div>
+  </div>
+
+  <h2 id="quadTitle"></h2>
+
+  <table id="taskTable">
+    <thead>
+      <tr>
+        <th>Task</th>
+        <th>Time</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Action</th>
+        <th>Undo</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    function formatTime12(time) {
+      if (!time) return '';
+      const [hStr, m] = time.split(':');
+      let h = parseInt(hStr, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      if (h === 0) h = 12;
+      else if (h > 12) h -= 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    let allTasks = [];
+    let currentQuadrant = 1;
+
+    function quadrantTitle(q) {
+      return q === 1 ? '🔴 RED – Urgent & Important'
+        : q === 2 ? '🔵 BLUE – Important, not urgent'
+          : q === 3 ? '🟡 YELLOW – Urgent, not important'
+            : '⚪ GRAY – Low priority';
+    }
+
+    const prioLabels = { 1: '🔴 RED', 2: '🔵 BLUE', 3: '🟡 YELLOW', 4: '⚪ GRAY' };
+
+    function renderQuadrant(q) {
+      currentQuadrant = q;
+      document.getElementById('quadTitle').textContent = quadrantTitle(q);
+
+      const tbody = document.querySelector('#taskTable tbody');
+      tbody.innerHTML = '';
+
+      const tasks = allTasks.filter(t => t.quadrant === q);
+
+      if (!tasks || tasks.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 8;
+        td.textContent = 'No tasks in this quadrant.';
+        td.style.color = 'var(--text-muted)';
+        td.style.textAlign = 'center';
+        td.style.padding = '16px';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+      }
+
+      tasks.forEach(t => {
+        const tr = document.createElement('tr');
+        const isFrozenCarryOver = t.status === 'carried_over';
+
+        if (t.isCarryOver === 1) {
+          tr.style.borderLeft = '3px solid var(--warning)';
+        }
+        if (isFrozenCarryOver) {
+          tr.style.opacity = '0.6';
+        }
+
+        const tdTask = document.createElement('td');
+        let taskTitleText = t.task;
+        tdTask.textContent = taskTitleText;
+        if (t.repeatDaily === 1) {
+          tdTask.insertAdjacentHTML('afterbegin', '<i data-lucide="repeat" class="orb-icon sm" style="margin-right:4px"></i>');
+          tdTask.title = 'This task repeats daily';
+        }
+        if (t.isCarryOver === 1) {
+          tdTask.insertAdjacentHTML('afterbegin', '<i data-lucide="flag" class="orb-icon sm" style="margin-right:4px"></i>');
+        }
+        tr.appendChild(tdTask);
+
+        const tdTime = document.createElement('td');
+        tdTime.textContent = formatTime12(t.time);
+        tr.appendChild(tdTime);
+
+        const tdPrio = document.createElement('td');
+        tdPrio.textContent = prioLabels[t.quadrant] || t.quadrant;
+        tr.appendChild(tdPrio);
+
+        const tdStatus = document.createElement('td');
+        if (t.status === 'carried_over') {
+          tdStatus.textContent = 'Carried Over';
+          tdStatus.className = 'status-carried-over';
+        } else if (t.status === 'completed') {
+          tdStatus.textContent = 'Completed';
+          tdStatus.className = 'status-completed';
+        } else {
+          tdStatus.textContent = t.status;
+          tdStatus.className = 'status-pending';
+        }
+        tr.appendChild(tdStatus);
+
+        const tdAction = document.createElement('td');
+        if (t.status === 'pending') {
+          const btn = document.createElement('button');
+          btn.textContent = 'Mark done';
+          btn.className = 'btn btn-complete';
+          btn.addEventListener('click', async () => {
+            await window.taskAPI.completeTask(t.id);
+            await loadTasks();
+          });
+          tdAction.appendChild(btn);
+        } else {
+          tdAction.textContent = '-';
+          tdAction.style.color = 'var(--text-muted)';
+        }
+        tr.appendChild(tdAction);
+
+        const tdUndo = document.createElement('td');
+        if (t.isCarryOver === 1 && t.status === 'carried_over') {
+          const undoBtn = document.createElement('button');
+          undoBtn.textContent = 'Undo';
+          undoBtn.className = 'btn btn-undo';
+          undoBtn.onclick = async () => {
+            await window.taskAPI.undoCarryOver(t.id);
+            await loadTasks();
+          };
+          tdUndo.appendChild(undoBtn);
+        } else if (t.status === 'completed') {
+          const undoBtn = document.createElement('button');
+          undoBtn.textContent = 'Undo';
+          undoBtn.className = 'btn btn-undo';
+          undoBtn.onclick = async () => {
+            await window.taskAPI.undoCompleteTask(t.id);
+            await loadTasks();
+          };
+          tdUndo.appendChild(undoBtn);
+        } else {
+          tdUndo.textContent = '-';
+          tdUndo.style.color = 'var(--text-muted)';
+        }
+        tr.appendChild(tdUndo);
+
+        const tdEdit = document.createElement('td');
+        if (t.status === 'pending') {
+          const editBtn = document.createElement('button');
+          editBtn.textContent = 'Edit';
+          editBtn.className = 'btn btn-edit';
+          editBtn.addEventListener('click', async () => {
+            await window.taskAPI.editTask(t);
+          });
+          tdEdit.appendChild(editBtn);
+        } else {
+          tdEdit.textContent = '-';
+          tdEdit.style.color = 'var(--text-muted)';
+        }
+        tr.appendChild(tdEdit);
+
+        const tdDelete = document.createElement('td');
+        if (t.status === 'pending') {
+          const delBtn = document.createElement('button');
+          delBtn.textContent = 'Delete';
+          delBtn.className = 'btn btn-delete';
+          delBtn.addEventListener('click', async () => {
+            if (confirm('Delete this task? Timers will be cancelled.')) {
+              await window.taskAPI.deleteTask(t.id);
+              await loadTasks();
+            }
+          });
+          tdDelete.appendChild(delBtn);
+        } else {
+          tdDelete.textContent = '-';
+          tdDelete.style.color = 'var(--text-muted)';
+        }
+        tr.appendChild(tdDelete);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadTasks() {
+      const separated = await window.taskAPI.getTodaySeparated();
+      allTasks = [
+        ...(separated.todayTasks || []),
+        ...(separated.carryOvers || []),
+      ];
+      renderQuadrant(currentQuadrant);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.tp-quad').forEach(div => {
+        div.addEventListener('click', () => {
+          const q = parseInt(div.dataset.q, 10);
+          renderQuadrant(q);
+        });
+      });
+
+      // ── Voice Agent Integration: Listen for filter commands ──
+      window.taskAPI.onVoiceFilter?.((filterType) => {
+        console.log('Voice filter triggered:', filterType);
+        filterType = filterType.toLowerCase();
+        
+        if (filterType.includes('urgent') || filterType.includes('quadrant 1') || filterType.includes('red')) {
+          renderQuadrant(1);
+        } else if (filterType.includes('blue') || filterType.includes('quadrant 2')) {
+          renderQuadrant(2);
+        } else if (filterType.includes('yellow') || filterType.includes('quadrant 3')) {
+          renderQuadrant(3);
+        } else if (filterType.includes('gray') || filterType.includes('quadrant 4')) {
+          renderQuadrant(4);
+        }
+      });
+    });
+
+    loadTasks();
+    setInterval(loadTasks, 2000);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Orb Orb</title>
+  <link rel="stylesheet" href="theme.css">
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      overflow: hidden;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .orb {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--orb-bg);
+      box-shadow: 0 0 16px var(--orb-glow), 0 0 32px var(--orb-glow);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .orb:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px var(--orb-glow-strong), 0 0 40px var(--orb-glow);
+    }
+
+    .orb:active {
+      transform: scale(0.95);
+    }
+
+    /* Pulsing ring — default idle state */
+    .orb::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid var(--orb-ring);
+      animation: orbPulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes orbPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.12); opacity: 0; }
+    }
+
+    /* ── Voice: Listening state (rotating + cyan glow) ── */
+    .orb.listening {
+      animation: orbSpin 1.8s linear infinite;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.6), 0 0 40px rgba(0, 200, 255, 0.3), 0 0 60px rgba(0, 200, 255, 0.15);
+    }
+
+    .orb.listening::before {
+      border-color: rgba(0, 200, 255, 0.7);
+      animation: orbPulseListening 1s ease-in-out infinite;
+    }
+
+    @keyframes orbPulseListening {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.2); opacity: 0.2; }
+    }
+
+    /* ── Voice: Speaking state (slower rotation + green glow) ── */
+    .orb.speaking {
+      animation: orbSpin 3s linear infinite;
+      box-shadow: 0 0 20px rgba(100, 220, 130, 0.6), 0 0 40px rgba(100, 220, 130, 0.3), 0 0 60px rgba(100, 220, 130, 0.15);
+    }
+
+    .orb.speaking::before {
+      border-color: rgba(100, 220, 130, 0.7);
+      animation: orbPulseSpeaking 1.5s ease-in-out infinite;
+    }
+
+    @keyframes orbPulseSpeaking {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(1.15); opacity: 0.1; }
+    }
+
+    /* ── Voice: Permission denied flash ── */
+    .orb.denied {
+      animation: orbDenied 0.6s ease;
+    }
+
+    @keyframes orbDenied {
+      0%, 100% { box-shadow: 0 0 16px var(--orb-glow), 0 0 32px var(--orb-glow); }
+      25%, 75% { box-shadow: 0 0 24px rgba(255, 60, 60, 0.8), 0 0 48px rgba(255, 60, 60, 0.4); }
+    }
+
+    /* ── Shared spin keyframe ── */
+    @keyframes orbSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Image Icon */
+    .orb-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      background-image: url('assets/orb-dark.png');
+    }
+
+    html[data-theme="light"] .orb-img {
+      background-image: url('assets/orb-light.png');
+    }
+
+    /* Icon changes during voice states */
+    .orb.listening .orb-img,
+    .orb.speaking .orb-img {
+      transform: scale(0.9);
+    }
+
+    /* ── Permission toast ── */
+    .voice-toast {
+      position: fixed;
+      bottom: 64px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(20, 20, 20, 0.95);
+      border: 1px solid rgba(255, 100, 100, 0.4);
+      color: #f0f0f0;
+      font-size: 11px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 999;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .voice-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <div class="orb" id="orb" title="Ctrl+Shift+O starts a voice session; clicking the orb while it's listening/speaking cancels it; clicking the orb while idle still opens the quick-access panel.">
+    <div class="orb-img" id="orbIcon"></div>
+  </div>
+  <div class="voice-toast" id="voiceToast"></div>
+
+  <script>
+    const orb = document.getElementById('orb');
+    const orbIcon = document.getElementById('orbIcon');
+    const voiceToast = document.getElementById('voiceToast');
+
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragMoved = false;
+
+    // ── Drag handling ──
+    orb.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      dragMoved = false;
+      dragStartX = e.screenX;
+      dragStartY = e.screenY;
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      
+      const dx = e.screenX - dragStartX;
+      const dy = e.screenY - dragStartY;
+      
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        dragMoved = true;
+      }
+
+      if (dragMoved) {
+        window.orbAPI.moveOrb(e.screenX - 30, e.screenY - 30);
+      }
+    });
+
+    let lastToggleTime = 0;
+
+    document.addEventListener('mouseup', (e) => {
+      isDragging = false;
+    });
+
+    orb.addEventListener('click', (e) => {
+      if (dragMoved) return; // Ignore click if we were dragging
+      
+      const now = Date.now();
+      if (now - lastToggleTime < 400) {
+        return; // Prevent flickering from rapid/double clicks
+      }
+      lastToggleTime = now;
+
+      // Single click:
+      // If voice is currently listening/speaking, stop it
+      if (orb.classList.contains('listening') || orb.classList.contains('speaking')) {
+        console.log('[Orb] Clicked while voice active — cancelling voice session');
+        window.voiceAPI.activate(); // toggle acts as stop
+      } else {
+        // Otherwise toggle panel instantly
+        window.orbAPI.togglePanel();
+      }
+    });
+
+    // ── Voice state management ──
+    window.voiceAPI.onStartListening(() => {
+      orb.className = 'orb listening';
+    });
+
+    window.voiceAPI.onStartSpeaking(() => {
+      orb.className = 'orb speaking';
+    });
+
+    window.voiceAPI.onStop(() => {
+      orb.className = 'orb';
+    });
+
+    window.voiceAPI.onPermissionNeeded(() => {
+      // Flash red + show toast
+      orb.classList.add('denied');
+      setTimeout(() => orb.classList.remove('denied'), 700);
+
+      showToast('🎙️ Mic disabled. Enable in Home → Settings');
+    });
+
+    function showToast(msg) {
+      voiceToast.textContent = msg;
+      voiceToast.classList.add('show');
+      setTimeout(() => {
+        voiceToast.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Loading Orb...</title>
+  <style>
+    body {
+      background-color: transparent;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      /* Allows dragging the splash screen */
+      -webkit-app-region: drag; 
+    }
+    .splash-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    img {
+      width: 140px;
+      height: 140px;
+      animation: pulse 2s infinite ease-in-out;
+      filter: drop-shadow(0 0 15px rgba(138, 43, 226, 0.6));
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 25px rgba(138, 43, 226, 0.9)); }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+  <div class="splash-container">
+    <img src="assets/orb-light.png" alt="Loading...">
+  </div>
+</body>
+</html>

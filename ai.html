@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orb — AI Assistant</title>
+    <link rel="stylesheet" href="theme.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+        * { margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        /* ── Header ── */
+        .header {
+            display: flex;
+            justify-content: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .header-content {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+            transition: background 0.3s ease;
+        }
+
+        .header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* ── Chat area ── */
+        #chat-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        #chat {
+            width: 100%;
+            max-width: 800px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 13px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            transition: all 0.2s ease;
+            animation: slideInUp 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .msg.user {
+            align-self: flex-end;
+            background: var(--accent);
+            color: var(--text-inverse);
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.bot {
+            align-self: flex-start;
+            background: var(--bg-elevated);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg.bot.error {
+            border-color: rgba(204,85,85,0.3);
+            color: var(--danger);
+        }
+
+        .msg.bot.success {
+            border-color: rgba(126,201,126,0.3);
+            color: var(--success);
+        }
+
+        /* ── Task list in chat ── */
+        .task-list {
+            margin: 6px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .task-list li {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        .task-list li:last-child {
+            border-bottom: none;
+        }
+
+        .task-list .quadrant-badge {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .q1 { background: var(--prio-red); }
+        .q2 { background: var(--prio-blue); }
+        .q3 { background: var(--prio-yellow); }
+        .q4 { background: var(--prio-gray); }
+
+        /* ── Confirmation buttons ── */
+        .confirm-btns {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .confirm-btns button {
+            padding: 5px 14px;
+            border: 1.5px solid transparent;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            font-family: inherit;
+        }
+
+        .confirm-btns button:hover {
+            transform: translateY(-1px);
+        }
+
+        .confirm-btns button:active {
+            animation: buttonPress 0.15s ease;
+        }
+
+        .btn-yes {
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+        }
+
+        .btn-no {
+            background: var(--btn-secondary-bg);
+            color: var(--btn-secondary-text);
+            border-color: var(--btn-secondary-border);
+        }
+
+        /* ── Disambiguation list ── */
+        .disambig-list {
+            margin: 6px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .disambig-list li {
+            padding: 4px 8px;
+            margin: 3px 0;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .disambig-list li:hover {
+            background: var(--accent-subtle);
+            border-color: var(--border-hover);
+        }
+
+        /* ── Input bar ── */
+        .input-bar {
+            display: flex;
+            justify-content: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .input-content {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            gap: 8px;
+        }
+
+        #msgInput {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-input);
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #msgInput:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-subtle);
+        }
+
+        #msgInput::placeholder {
+            color: var(--text-muted);
+        }
+
+        #sendBtn {
+            padding: 10px 18px;
+            border: 1.5px solid transparent;
+            border-radius: 8px;
+            background: var(--btn-primary-bg);
+            color: var(--btn-primary-text);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+            font-family: inherit;
+        }
+
+        #sendBtn:hover {
+            background: var(--btn-primary-hover);
+            transform: translateY(-1px);
+        }
+
+        #sendBtn:active {
+            animation: buttonPress 0.15s ease;
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Loading indicator ── */
+        .typing-indicator {
+            align-self: flex-start;
+            padding: 10px 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+            font-size: 13px;
+            color: var(--text-muted);
+            animation: subtlePulse 1.2s infinite;
+        }
+
+        /* ── Report display ── */
+        .report-block {
+            margin-top: 6px;
+            font-size: 12px;
+        }
+
+        .report-block .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <div class="header-content">
+            <div class="dot"></div>
+            <h1>AI Assistant</h1>
+        </div>
+    </div>
+
+    <div id="chat-wrapper">
+        <div id="chat"></div>
+    </div>
+
+    <div class="input-bar">
+        <div class="input-content">
+            <input id="msgInput" type="text" placeholder="Try: create &#34;my task&#34; on friday at 5pm, show tasks, delete..."
+                autocomplete="off" />
+            <button id="sendBtn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatWrapper = document.getElementById('chat-wrapper');
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('msgInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function scrollToBottom() {
+            chatWrapper.scrollTop = chatWrapper.scrollHeight;
+        }
+
+        function addMessage(text, type) {
+            const div = document.createElement('div');
+            div.classList.add('msg', type);
+            if (typeof text === 'string') {
+                div.textContent = text;
+            }
+            chat.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function addBotMessage(text, extraClass) {
+            const div = document.createElement('div');
+            div.classList.add('msg', 'bot');
+            if (extraClass) div.classList.add(extraClass);
+            div.textContent = text;
+            chat.appendChild(div);
+            scrollToBottom();
+            return div;
+        }
+
+        function showTyping() {
+            const div = document.createElement('div');
+            div.classList.add('typing-indicator');
+            div.id = 'typing';
+            div.textContent = 'AI is thinking…';
+            chat.appendChild(div);
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            const el = document.getElementById('typing');
+            if (el) el.remove();
+        }
+
+        function renderTasks(tasks) {
+            const div = document.createElement('div');
+            div.classList.add('msg', 'bot');
+
+            if (!tasks || tasks.length === 0) {
+                div.textContent = 'No tasks found.';
+                chat.appendChild(div);
+                scrollToBottom();
+                return;
+            }
+
+            const header = document.createElement('div');
+            header.style.marginBottom = '6px';
+            header.textContent = `${tasks.length} task(s):`;
+            div.appendChild(header);
+
+            const ul = document.createElement('ul');
+            ul.classList.add('task-list');
+            tasks.forEach(t => {
+                const li = document.createElement('li');
+                const badge = document.createElement('span');
+                badge.classList.add('quadrant-badge', `q${t.quadrant || 4}`);
+                li.appendChild(badge);
+                let textLabel = `${t.task} — ${t.time || '??:??'} (${t.duration || '?'}m)`;
+                if (t.status === 'carried_over') textLabel += ' [Carried Over]';
+                if (t.repeatDaily === 1 || t.repeatDaily === true) textLabel += ' [Repeat Daily]';
+                
+                li.appendChild(document.createTextNode(textLabel));
+                
+                let iconsHTML = '';
+                if (t.status === 'completed') iconsHTML += '<i data-lucide="check-circle-2" class="orb-icon sm" style="margin-right:4px"></i>';
+                else if (t.status === 'carried_over') iconsHTML += '<i data-lucide="refresh-cw" class="orb-icon sm" style="margin-right:4px"></i>';
+                else iconsHTML += '<i data-lucide="hourglass" class="orb-icon sm" style="margin-right:4px"></i>';
+                
+                if (t.isCarryOver === 1 || t.status === 'carried_over') {
+                    iconsHTML += '<i data-lucide="flag" class="orb-icon sm" style="margin-right:4px"></i>';
+                }
+                li.insertAdjacentHTML('afterbegin', iconsHTML);
+                
+                ul.appendChild(li);
+            });
+            div.appendChild(ul);
+            chat.appendChild(div);
+            lucide.createIcons();
+            scrollToBottom();
+        }
+
+        function renderConfirmation(result) {
+            const div = addBotMessage(result.message);
+
+            const btns = document.createElement('div');
+            btns.classList.add('confirm-btns');
+
+            const yesBtn = document.createElement('button');
+            yesBtn.classList.add('btn-yes');
+            yesBtn.textContent = result.confirmLabel ? result.confirmLabel : 'Yes';
+            yesBtn.insertAdjacentHTML('afterbegin', '<i data-lucide="check-circle-2" class="orb-icon sm"></i> ');
+            yesBtn.addEventListener('click', () => {
+                btns.remove();
+                sendAIMessage('yes');
+            });
+
+            const noBtn = document.createElement('button');
+            noBtn.classList.add('btn-no');
+            noBtn.textContent = result.cancelLabel ? result.cancelLabel : 'No';
+            noBtn.insertAdjacentHTML('afterbegin', '<i data-lucide="x" class="orb-icon sm"></i> ');
+            noBtn.addEventListener('click', () => {
+                btns.remove();
+                sendAIMessage('no');
+            });
+
+            btns.appendChild(yesBtn);
+            btns.appendChild(noBtn);
+            div.appendChild(btns);
+            lucide.createIcons();
+            scrollToBottom();
+        }
+
+        function renderDisambiguation(result) {
+            const div = addBotMessage(result.message);
+
+            const ul = document.createElement('ul');
+            ul.classList.add('disambig-list');
+            result.matches.forEach(m => {
+                const li = document.createElement('li');
+                const badge = document.createElement('span');
+                badge.classList.add('quadrant-badge', `q${m.quadrant || 4}`);
+                li.appendChild(badge);
+                li.appendChild(document.createTextNode(`${m.index}. ${m.title}`));
+                li.addEventListener('click', () => {
+                    sendAIMessage(String(m.index));
+                });
+                ul.appendChild(li);
+            });
+            div.appendChild(ul);
+            scrollToBottom();
+        }
+
+        function renderOptionSelection(result) {
+            const div = addBotMessage(result.message);
+
+            const ul = document.createElement('ul');
+            ul.classList.add('disambig-list');
+            result.options.forEach((opt, i) => {
+                const li = document.createElement('li');
+                li.textContent = `${opt.label} — ${opt.description}`;
+                li.insertAdjacentHTML('afterbegin', `<strong style="margin-right:6px">${i + 1}.</strong>`);
+                li.addEventListener('click', () => {
+                    sendAIMessage(String(i + 1));
+                });
+                ul.appendChild(li);
+            });
+            div.appendChild(ul);
+            scrollToBottom();
+        }
+
+        function renderReport(report) {
+            const div = document.createElement('div');
+            div.classList.add('msg', 'bot');
+
+            if (!report) {
+                div.textContent = 'No report data available.';
+                chat.appendChild(div);
+                scrollToBottom();
+                return;
+            }
+
+            const block = document.createElement('div');
+            block.classList.add('report-block');
+
+            const stats = [
+                ['Total Tasks', report.totalTasks || 0],
+                ['Completed', report.completed || 0],
+                ['Pending', report.pending || 0],
+                ['Carried Over', report.carriedOver || 0],
+                ['Completion Rate', report.completionRate ? `${report.completionRate}%` : 'N/A'],
+            ];
+
+            stats.forEach(([label, value]) => {
+                const row = document.createElement('div');
+                row.classList.add('stat');
+                row.innerHTML = `<span>${label}</span><strong>${value}</strong>`;
+                block.appendChild(row);
+            });
+
+            div.appendChild(block);
+            chat.appendChild(div);
+            scrollToBottom();
+        }
+
+        function renderEvents(events) {
+            const div = document.createElement('div');
+            div.classList.add('msg', 'bot');
+
+            if (!events || events.length === 0) {
+                div.textContent = 'No history events found.';
+                chat.appendChild(div);
+                scrollToBottom();
+                return;
+            }
+
+            const header = document.createElement('div');
+            header.style.marginBottom = '6px';
+            header.textContent = `${events.length} event(s):`;
+            div.appendChild(header);
+
+            const ul = document.createElement('ul');
+            ul.classList.add('task-list');
+            events.forEach(e => {
+                const li = document.createElement('li');
+                const ts = e.timestamp ? new Date(e.timestamp).toLocaleTimeString() : '';
+                li.textContent = `${e.action_type}: ${e.task_title || ''} ${ts ? '@ ' + ts : ''}`;
+                ul.appendChild(li);
+            });
+            div.appendChild(ul);
+            chat.appendChild(div);
+            scrollToBottom();
+        }
+
+        function handleResponse(result) {
+            hideTyping();
+
+            if (!result) {
+                addBotMessage('No response received.', 'error');
+                return;
+            }
+
+            if (result.error) {
+                addBotMessage(result.error, 'error');
+                return;
+            }
+
+            if (result.needsClarification) {
+                addBotMessage(result.message);
+                return;
+            }
+
+            if (result.needsOptionSelection) {
+                renderOptionSelection(result);
+                return;
+            }
+
+            if (result.needsConfirmation) {
+                renderConfirmation(result);
+                return;
+            }
+
+            if (result.needsDisambiguation) {
+                renderDisambiguation(result);
+                return;
+            }
+
+            if (result.tasks && Array.isArray(result.tasks)) {
+                if (result.message) addBotMessage(result.message, 'success');
+                renderTasks(result.tasks);
+                return;
+            }
+
+            if (result.task && !result.tasks) {
+                if (result.message) addBotMessage(result.message, 'success');
+                renderTasks([result.task]);
+                return;
+            }
+
+            if (result.report) {
+                if (result.message) addBotMessage(result.message, 'success');
+                renderReport(result.report);
+                return;
+            }
+
+            if (result.events) {
+                if (result.message) addBotMessage(result.message, 'success');
+                renderEvents(result.events);
+                return;
+            }
+
+            if (result.success) {
+                addBotMessage(result.message || 'Done!', 'success');
+                return;
+            }
+
+            const display = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
+            addBotMessage(display);
+        }
+
+        async function sendAIMessage(text) {
+            if (!text) return;
+
+            addMessage(text, 'user');
+            showTyping();
+            sendBtn.disabled = true;
+
+            try {
+                const result = await window.aiAPI.sendMessage(text);
+                handleResponse(result);
+            } catch (err) {
+                hideTyping();
+                addBotMessage('Error: ' + err.message, 'error');
+            }
+
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        let apiKeySet = false;
+
+        async function checkApiKey() {
+          try {
+            const key = await window.apiKey.get();
+            apiKeySet = !!key;
+          } catch (e) {
+            apiKeySet = false;
+          }
+
+          if (!apiKeySet) {
+            const warningDiv = document.createElement('div');
+            warningDiv.classList.add('msg', 'bot', 'error');
+            warningDiv.textContent = 'API Key is not set.\n\nPlease go to Home Page \u2192 API Key section to set your Groq API key.\n\nAll other features (tasks, reminders, follow-ups) work normally \u2014 only the AI assistant requires an API key.';
+            chat.appendChild(warningDiv);
+            scrollToBottom();
+            input.disabled = true;
+            sendBtn.disabled = true;
+            input.placeholder = 'Set API key in Home \u2192 API Key to use AI...';
+          } else {
+            addBotMessage('Hi! I can help you manage your tasks. Try saying:\n\n\u2022 "show my tasks"\n\u2022 create \"Review PR\" at 3 PM on friday remind 15 min before in quadrant 1\n\u2022 "delete Review PR"\n\u2022 "show report"\n\u2022 "open task list"\n\n\uD83D\uDCA1 Tip: Put your task title in quotes (\"like this\") so I understand it perfectly!');
+            input.focus();
+          }
+        }
+
+        async function send() {
+            if (!apiKeySet) {
+                addBotMessage('Please set your API key first.\n\nGo to Home Page \u2192 API Key section to set it up.', 'error');
+                return;
+            }
+            const text = input.value.trim();
+            if (!text) return;
+            input.value = '';
+            await sendAIMessage(text);
+        }
+
+        sendBtn.addEventListener('click', send);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') send();
+        });
+
+        checkApiKey();
+    </script>
+</body>
+
+</html>

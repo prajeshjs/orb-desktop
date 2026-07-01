@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Orb Voice Engine</title>
+</head>
+<body>
+  <script>
+    // ═══════════════════════════════════════════════════════
+    // Orb Voice Engine — Hidden Window
+    // Handles: Speech Recording (via MediaRecorder) + Speech Synthesis (TTS)
+    // ═══════════════════════════════════════════════════════
+    let isListening = false;
+    let isSpeaking = false;
+    let shouldRestartListening = false; // for multi-turn conversation
+    let selectedVoice = null;
+    let audioCtx = null;
+
+    // ── Audio Context for activation sounds ──
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    /**
+     * Play a programmatic activation "ding" sound
+     * Warm, calm tone — two soft notes ascending
+     */
+    function playActivationSound() {
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        // Note 1: soft warm tone
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, now); // D5
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.3);
+
+        // Note 2: slightly higher, softer
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, now + 0.12); // A5
+        gain2.gain.setValueAtTime(0, now + 0.12);
+        gain2.gain.linearRampToValueAtTime(0.1, now + 0.17);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.45);
+      } catch (e) {
+        // Audio not critical — ignore errors
+      }
+    }
+
+    /**
+     * Play a softer "done" tone when response finishes
+     */
+    function playDoneSound() {
+      try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch (e) { /* ignore */ }
+    }
+
+    // ── Voice Selection ──
+    // Pick a warm, calm, smooth English voice
+    function selectBestVoice() {
+      const voices = speechSynthesis.getVoices();
+      if (voices.length === 0) return null;
+
+      // Priority list of preferred voice name keywords (warm/calm/smooth voices)
+      // These are commonly available on Windows, macOS, and Linux
+      const preferred = [
+        'zira',        // Windows — calm, warm female
+        'hazel',       // Windows — British, smooth
+        'susan',       // Windows — warm
+        'samantha',    // macOS — smooth, bright
+        'karen',       // macOS — Australian, warm
+        'moira',       // macOS — Irish, calm
+        'fiona',       // macOS — Scottish, warm
+        'google us english',  // Chrome — clear, smooth
+        'google uk english female', // Chrome — warm British
+        'english',     // Generic fallback
+      ];
+
+      // First pass: match preferred voices (case-insensitive)
+      for (const pref of preferred) {
+        const found = voices.find(v =>
+          v.name.toLowerCase().includes(pref) && v.lang.startsWith('en')
+        );
+        if (found) return found;
+      }
+
+      // Second pass: any English female-sounding voice
+      const englishVoices = voices.filter(v => v.lang.startsWith('en'));
+      if (englishVoices.length > 0) {
+        // Prefer non-default voices (they tend to be higher quality)
+        const nonDefault = englishVoices.find(v => !v.default);
+        return nonDefault || englishVoices[0];
+      }
+
+      // Final fallback: any voice
+      return voices[0];
+    }
+
+    // Load voices (they may load asynchronously)
+    function loadVoices() {
+      selectedVoice = selectBestVoice();
+      if (selectedVoice) {
+        console.log('[Voice] Selected voice:', selectedVoice.name, selectedVoice.lang);
+      }
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // try immediately too
+
+    // ── Text cleanup for speech ──
+    function cleanTextForSpeech(text) {
+      if (!text) return '';
+      return text
+        // Remove emojis
+        .replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|[\u{1F000}-\u{1FFFF}]|[✅❌⚠️🔑🗑️🔄⏰📋🤖📊🚩🔁⏸🚀🖥️⏱️🔮🎨🔔✕⚡🏠📖📝📅🔗🎙️☑️🔴🔵🟡⚪💡🎯🔥✨]/gu, '')
+        // Remove markdown-style formatting
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/`/g, '')
+        .replace(/#+ /g, '')
+        // Replace escaped quotes
+        .replace(/\\"/g, '"')
+        // Clean up newlines for pauses
+        .replace(/\n{2,}/g, '. ')
+        .replace(/\n/g, '. ')
+        // Clean up numbered lists for natural speech
+        .replace(/^\d+\.\s+/gm, '')
+        // Remove "Reply with..." instructions (not needed in voice)
+        .replace(/Reply\s+(with\s+)?(the\s+)?(number|yes|no|1|2)\.?/gi, '')
+        .replace(/Reply\s+\d+\s+or\s+\d+\.?/gi, '')
+        // Clean up multiple spaces/dots
+        .replace(/\.\s*\./g, '.')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    // ── Speech Synthesis (TTS) ──
+    function speak(text, onDone) {
+      if (!text) {
+        if (onDone) onDone();
+        return;
+      }
+
+      // Cancel any ongoing speech
+      speechSynthesis.cancel();
+      isSpeaking = true;
+
+      // Notify main process: speaking started
+      window.voiceAPI.sendSpeakingStarted();
+
+      const cleaned = cleanTextForSpeech(text);
+      const utterance = new SpeechSynthesisUtterance(cleaned);
+
+      // Reload voices if needed
+      if (!selectedVoice) loadVoices();
+      if (selectedVoice) utterance.voice = selectedVoice;
+
+      utterance.lang = 'en-US';
+      utterance.rate = 0.95;    // Slightly slower — calm & clear
+      utterance.pitch = 1.05;   // Slightly higher — warm & bright
+      utterance.volume = 0.9;
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        playDoneSound();
+        if (onDone) onDone();
+      };
+
+      utterance.onerror = (e) => {
+        console.error('[Voice] Speech synthesis error:', e.error);
+        isSpeaking = false;
+        if (onDone) onDone();
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    // ── Speech Recording (MediaRecorder + Groq Whisper) ──
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioStream = null;
+    let audioContextForSilence = null;
+    let silenceAnimationFrame = null;
+    let wasForceStopped = false;
+
+    async function startListening() {
+      // Cancel any ongoing speech first
+      speechSynthesis.cancel();
+      isSpeaking = false;
+      wasForceStopped = false;
+
+      if (isListening) stopListening();
+
+      try {
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        console.error('[Voice] Microphone error:', e);
+        window.voiceAPI.sendError('Microphone access was denied. Please enable it in Settings.');
+        return;
+      }
+
+      isListening = true;
+      console.log('[Voice] Microphone active — listening...');
+      window.voiceAPI.sendListeningStarted();
+      
+      playActivationSound();
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+      mediaRecorder = new MediaRecorder(audioStream, { mimeType });
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        isListening = false;
+        stopSilenceDetection();
+        
+        if (audioStream) {
+          audioStream.getTracks().forEach(track => track.stop());
+        }
+
+        if (!wasForceStopped) {
+          if (audioChunks.length > 0) {
+            console.log(`[Voice] Recording finished. Sending ${audioChunks.length} chunks to main process for Groq Whisper...`);
+            const blob = new Blob(audioChunks, { type: mimeType });
+            const arrayBuffer = await blob.arrayBuffer();
+            window.voiceAPI.sendAudioBuffer(arrayBuffer);
+          } else {
+            console.log('[Voice] No audio recorded.');
+            window.voiceAPI.sendDone();
+          }
+        }
+      };
+
+      // Wait slightly after ding so we don't record the ding
+      setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state !== 'recording' && !wasForceStopped) {
+          mediaRecorder.start(100); // capture chunks
+          startSilenceDetection(audioStream);
+        }
+      }, 300);
+    }
+
+    function startSilenceDetection(stream) {
+      audioContextForSilence = new AudioContext();
+      const analyser = audioContextForSilence.createAnalyser();
+      const source = audioContextForSilence.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      let hasSpoken = false;
+      let silenceStartTime = Date.now();
+      const maxRecordingDuration = 45000; // 45 seconds absolute max to prevent indefinite recording
+      const silenceThreshold = 35;        // INCREASED: higher threshold to ignore background fans/noise
+      const initialTimeout = 15000;       // wait 15 seconds max for FIRST word before auto-closing
+      const silenceTimeout = 2500;        // DECREASED: wait 2.5 seconds of silence AFTER speaking to stop
+      const startTime = Date.now();
+
+      function checkSilence() {
+        if (!isListening || mediaRecorder?.state !== 'recording') return;
+
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+        let averageVolume = sum / bufferLength;
+
+        const now = Date.now();
+
+        if (averageVolume > silenceThreshold) {
+          hasSpoken = true;
+          silenceStartTime = now;
+        }
+
+        let shouldStop = false;
+
+        if (!hasSpoken && (now - startTime > initialTimeout)) {
+          console.log('[Voice] Initial timeout reached (no speech detected)');
+          shouldStop = true;
+        } else if (hasSpoken && (now - silenceStartTime > silenceTimeout)) {
+          console.log('[Voice] Silence detected after speech, stopping');
+          shouldStop = true;
+        } else if (now - startTime > maxRecordingDuration) {
+          console.log('[Voice] Max recording duration reached');
+          shouldStop = true;
+        }
+
+        if (shouldStop) {
+          if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        } else {
+          silenceAnimationFrame = requestAnimationFrame(checkSilence);
+        }
+      }
+
+      checkSilence();
+    }
+
+    function stopSilenceDetection() {
+      if (silenceAnimationFrame) cancelAnimationFrame(silenceAnimationFrame);
+      if (audioContextForSilence && audioContextForSilence.state !== 'closed') {
+        audioContextForSilence.close();
+      }
+    }
+
+    function stopListening() {
+      wasForceStopped = true;
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      stopSilenceDetection();
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop());
+      }
+      isListening = false;
+      speechSynthesis.cancel();
+      isSpeaking = false;
+    }
+
+    // ── IPC Event Handlers ──
+
+    // Main process says: start listening
+    window.voiceAPI.onStart(() => {
+      console.log('[Voice] Received voice:start — beginning recognition');
+      shouldRestartListening = false;
+      startListening();
+    });
+
+    // Main process sends response text to speak
+    window.voiceAPI.onResponse((data) => {
+      console.log('[Voice] Received response to speak:', data);
+
+      const text = data.message || data.error || '';
+      const needsFollowUp = data.needsClarification || data.needsConfirmation ||
+                            data.needsDisambiguation || data.needsOptionSelection;
+
+      speak(text, () => {
+        if (needsFollowUp) {
+          // Multi-turn: restart listening after speaking the question
+          console.log('[Voice] Multi-turn: restarting listening for follow-up');
+          shouldRestartListening = true;
+          // Brief pause before listening again
+          setTimeout(() => {
+            startListening();
+          }, 400);
+        } else {
+          // Done — notify main process
+          shouldRestartListening = false;
+          window.voiceAPI.sendDone();
+        }
+      });
+    });
+
+    // Main process says: force stop everything
+    window.voiceAPI.onForceStop(() => {
+      console.log('[Voice] Force stop received');
+      stopListening();
+      shouldRestartListening = false;
+      window.voiceAPI.sendDone();
+    });
+
+    console.log('[Voice] Voice engine initialized and ready');
+  </script>
+</body>
+</html>

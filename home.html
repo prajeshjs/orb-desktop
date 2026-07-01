@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orb — Home</title>
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    /* ── Sidebar Navigation ── */
+    .sidebar {
+      width: 220px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid var(--border);
+      transition: border-color 0.3s ease;
+    }
+
+    .sidebar-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header .version {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .nav {
+      flex: 1;
+      padding: 12px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 3px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: var(--accent-subtle);
+      color: var(--text-secondary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      border-left-color: var(--accent);
+    }
+
+    .nav-item .icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      transition: border-color 0.3s ease;
+    }
+
+    /* ── Main Content ── */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 40px;
+    }
+
+    .page { display: none; }
+    .page.active {
+      display: block;
+      animation: pageIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .page-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card p, .card li {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .card ul li {
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      transition: border-color 0.2s ease;
+    }
+
+    .card ul li:last-child {
+      border-bottom: none;
+    }
+
+    /* ── Feature Grid ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .feature-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .feature-item:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .feature-item .f-icon {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .feature-item h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .feature-item p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* ── Shortcut Keys Table ── */
+    .shortcut-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    .shortcut-table th,
+    .shortcut-table td {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s ease;
+    }
+
+    .shortcut-table th {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .shortcut-table td {
+      color: var(--text-secondary);
+    }
+
+    .shortcut-table tr:hover td {
+      background: var(--accent-subtle);
+    }
+
+    /* ── API Key Section ── */
+    .api-input-group {
+      display: flex;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .api-input {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .api-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    .api-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: 1.5px solid transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      animation: buttonPress 0.15s ease;
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+    }
+
+    .btn-primary:hover {
+      background: var(--btn-primary-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-danger {
+      background: var(--btn-danger-bg);
+      color: var(--btn-danger-text);
+      border-color: var(--btn-danger-border);
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+
+    .api-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+    }
+
+    .api-status.set {
+      border-color: rgba(126,201,126,0.3);
+      color: var(--success);
+    }
+
+    .api-status.unset {
+      border-color: rgba(204,85,85,0.3);
+      color: var(--danger);
+    }
+
+    .api-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s ease;
+    }
+
+    .api-status.set .dot { background: var(--success); }
+    .api-status.unset .dot { background: var(--danger); }
+
+    .api-feedback {
+      font-size: 13px;
+      margin-top: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      display: none;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .api-feedback.success {
+      display: block;
+      color: var(--success);
+      border-color: rgba(126,201,126,0.3);
+    }
+
+    .api-feedback.error {
+      display: block;
+      color: var(--danger);
+      border-color: rgba(204,85,85,0.3);
+    }
+
+    /* ── Step Instructions ── */
+    .steps {
+      counter-reset: step;
+      padding: 0;
+      list-style: none;
+    }
+
+    .steps li {
+      counter-increment: step;
+      padding: 12px 0 12px 42px;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      transition: border-color 0.2s ease;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 12px;
+      width: 28px;
+      height: 28px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .steps li:last-child { border-bottom: none; }
+
+    /* ── Accordion ── */
+    .accordion-item {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color 0.25s ease;
+    }
+
+    .accordion-item:hover {
+      border-color: var(--border-hover);
+    }
+
+    .accordion-header {
+      padding: 14px 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      transition: background 0.2s ease;
+    }
+
+    .accordion-header:hover {
+      background: var(--accent-subtle);
+    }
+
+    .accordion-header .arrow {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .accordion-item.open .accordion-header .arrow {
+      transform: rotate(180deg);
+    }
+
+    .accordion-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .accordion-item.open .accordion-body {
+      max-height: 600px;
+    }
+
+    .accordion-content {
+      padding: 0 18px 18px;
+    }
+
+    /* ── Toggle Switch ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+
+    .toggle-row .toggle-info {
+      flex: 1;
+    }
+
+    .toggle-row .toggle-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .toggle-row .toggle-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+      margin-left: 16px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--toggle-track);
+      border: 1.5px solid var(--toggle-track-border);
+      border-radius: 26px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      left: 2px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--toggle-knob);
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: var(--toggle-track-active);
+      border-color: var(--toggle-track-border-active);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateY(-50%) translateX(22px);
+      background: var(--toggle-knob-active);
+      box-shadow: 0 0 8px var(--orb-glow);
+    }
+
+    .toggle-status {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 8px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      display: inline-block;
+      transition: all 0.3s ease;
+      border: 1px solid var(--border);
+    }
+
+    .toggle-status.on {
+      color: var(--success);
+      border-color: rgba(126,201,126,0.3);
+    }
+
+    .toggle-status.off {
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+
+    /* ── Theme Toggle Special ── */
+    .theme-toggle-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .theme-option {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg-elevated);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+    }
+
+    .theme-option:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .theme-option.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-subtle);
+    }
+
+    .theme-option .theme-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin: 0 auto 8px;
+      border: 2px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .theme-option.dark-opt .theme-preview {
+      background: #0a0a0a;
+      border-color: #333;
+    }
+
+    .theme-option.light-opt .theme-preview {
+      background: #f2f2f2;
+      border-color: #ccc;
+    }
+
+    .theme-option .theme-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .theme-option .theme-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; flex-direction: row; overflow-x: auto; }
+      .nav { flex-direction: row; padding: 0; }
+      .nav-item { border-left: none; border-bottom: 3px solid transparent; padding: 10px 16px; }
+      .nav-item.active { border-bottom-color: var(--accent); border-left-color: transparent; }
+      .sidebar-header, .sidebar-footer { display: none; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Inline Splash Screen ── */
+    #home-splash-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000000; /* Pure black to hide image backgrounds */
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.5s ease-out;
+    }
+    
+    .splash-logo-img {
+      width: 140px;
+      height: 140px;
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    .splash-text-img {
+      width: 130px;
+      height: auto;
+      margin-top: 15px; /* Clean spacing below the logo, no overlap */
+      filter: invert(1); /* Invert light theme name image to white text on black */
+      opacity: 0.9;
+    }
+    
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 25px rgba(138, 43, 226, 0.9)); }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Inline Splash Screen overlay -->
+  <div id="home-splash-overlay">
+    <!-- Dark theme logo (black background) -->
+    <img src="assets/orb-dark.png" alt="Loading Orb..." class="splash-logo-img">
+    <!-- Light theme name (inverted to white text on black background) -->
+    <img src="assets/orb-text-logo.png" alt="O R B" class="splash-text-img">
+  </div>
+
+  <script>
+    // Remove splash overlay after 5 seconds
+    setTimeout(() => {
+      const splash = document.getElementById('home-splash-overlay');
+      if (splash) {
+        splash.style.opacity = '0'; // Trigger CSS fade out
+        setTimeout(() => splash.remove(), 500); // Remove from DOM completely after fade
+      }
+    }, 5000);
+  </script>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>
+        <img src="assets/orb-dark.png" class="app-logo dark-logo" alt="Orb">
+        <img src="assets/orb-light.png" class="app-logo light-logo" alt="Orb">
+      </h1>
+      <div class="version">v1.0.0</div>
+    </div>
+    <div class="nav">
+      <div class="nav-item active" data-page="about">
+        <span class="icon"><i data-lucide="home" class="orb-icon"></i></span>
+        <span>About</span>
+      </div>
+      <div class="nav-item" data-page="guide">
+        <span class="icon"><i data-lucide="book-open" class="orb-icon"></i></span>
+        <span>User Guide</span>
+      </div>
+      <div class="nav-item" data-page="settings">
+        <span class="icon"><i data-lucide="settings" class="orb-icon"></i></span>
+        <span>Settings</span>
+      </div>
+      <div class="nav-item" data-page="apikey">
+        <span class="icon"><i data-lucide="key" class="orb-icon"></i></span>
+        <span>API Key</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      © 2026 Orb
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- ═══ ABOUT PAGE ═══ -->
+    <div class="page active" id="page-about">
+      <div class="page-title">Welcome to Orb</div>
+      <div class="page-subtitle">Your smart task management assistant</div>
+
+      <div class="card">
+        <h3><i data-lucide="clipboard-list" class="orb-icon"></i> About Orb</h3>
+        <p>Orb is a powerful desktop task management application that runs quietly in the background and keeps you on track with smart reminders, follow-ups, and an AI-powered assistant.</p>
+        <p style="margin-top: 10px;">It is designed to sit in your system tray and provide timely notifications so you never miss a deadline.</p>
+      </div>
+
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="alarm-clock" class="orb-icon lg"></i></div>
+          <h4>Smart Reminders</h4>
+          <p>Get notified before your task is due, with customizable reminder durations.</p>
+        </div>
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="refresh-cw" class="orb-icon lg"></i></div>
+          <h4>Follow-up System</h4>
+          <p>Automatic follow-ups at configurable intervals until you complete your task.</p>
+        </div>
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="bot" class="orb-icon lg"></i></div>
+          <h4>AI Assistant</h4>
+          <p>Create, edit, and manage tasks using natural language via the AI window.</p>
+        </div>
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="bar-chart-2" class="orb-icon lg"></i></div>
+          <h4>Reports & History</h4>
+          <p>Track your productivity with detailed reports and event history.</p>
+        </div>
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="flag" class="orb-icon lg"></i></div>
+          <h4>Carry-Over Tasks</h4>
+          <p>Incomplete tasks automatically carry over to the next day.</p>
+        </div>
+        <div class="feature-item">
+          <div class="f-icon"><i data-lucide="repeat" class="orb-icon lg"></i></div>
+          <h4>Repeat Daily</h4>
+          <p>Set tasks to automatically repeat every day.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ USER GUIDE PAGE ═══ -->
+    <div class="page" id="page-guide">
+      <div class="page-title">User Guide</div>
+      <div class="page-subtitle">Learn how to use Orb effectively</div>
+
+      <div class="accordion-item open">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="rocket" class="orb-icon"></i> Getting Started</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ol class="steps">
+              <li>Orb runs in the background after installation. Look for the Orb icon in your system tray (bottom-right).</li>
+              <li>Use the keyboard shortcut <span class="tp-kbd">Ctrl+Shift+T</span> to open the task creation window.</li>
+              <li>Fill in the task name, time, reminder duration, and priority, then click Save.</li>
+              <li>Orb will remind you before the task is due and follow up if it is not completed.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="keyboard" class="orb-icon"></i> Keyboard Shortcuts</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <table class="shortcut-table">
+              <thead>
+                <tr><th>Shortcut</th><th>Action</th></tr>
+              </thead>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+T</span></td><td>Toggle Task Creation Window</td></tr>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+L</span></td><td>Toggle Task List Window</td></tr>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+H</span></td><td>Toggle History & Report Window</td></tr>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+A</span></td><td>Toggle AI Assistant Window</td></tr>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+C</span></td><td>Toggle Calendar Window</td></tr>
+                <tr><td><span class="tp-kbd">Ctrl+Shift+V</span></td><td>Activate Voice Assistant</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="clipboard-list" class="orb-icon"></i> Managing Tasks</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ol class="steps">
+              <li><strong>Create:</strong> Open the task window (<span class="tp-kbd">Ctrl+Shift+T</span>), enter details, and save.</li>
+              <li><strong>Edit:</strong> Open task list (<span class="tp-kbd">Ctrl+Shift+L</span>), click the edit icon on a task.</li>
+              <li><strong>Complete:</strong> Click the complete button on a task in the list, or respond "Yes" in a follow-up popup.</li>
+              <li><strong>Delete:</strong> Click the delete button on a task in the list.</li>
+              <li><strong>Carry Over:</strong> When a follow-up appears,  choose "Carry Over" to move the task to tomorrow.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="bot" class="orb-icon"></i> Using the AI Assistant</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <p style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">The AI assistant lets you manage tasks using natural language. Open it with <span class="tp-kbd">Ctrl+Shift+A</span>.</p>
+            <ol class="steps">
+              <li><strong>Create a task:</strong> "Create a task called Review PR at 3 PM remind 15 minutes before in quadrant 1"</li>
+              <li><strong>Show tasks:</strong> "Show my tasks" or "Show pending tasks"</li>
+              <li><strong>Complete a task:</strong> "Complete Review PR"</li>
+              <li><strong>Delete a task:</strong> "Delete Review PR"</li>
+              <li><strong>Show report:</strong> "Show report" or "Show history"</li>
+            </ol>
+            <p style="margin-top: 12px; color: var(--danger); font-size: 12px;"><i data-lucide="alert-triangle" class="orb-icon sm"></i> You must set an API key in the <strong>API Key</strong> section to use the AI assistant.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="key" class="orb-icon"></i> How to Get an API Key</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <p style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;">Orb uses the Groq API for AI features. Here is how to get a free API key:</p>
+            <ol class="steps">
+              <li>Go to <strong>console.groq.com</strong> in your browser.</li>
+              <li>Sign up for a free account or log in if you already have one.</li>
+              <li>Navigate to <strong>API Keys</strong> in the left sidebar.</li>
+              <li>Click <strong>"Create API Key"</strong> and give it a name (e.g., "Orb").</li>
+              <li>Copy the generated API key.</li>
+              <li>Go to the <strong>API Key</strong> section in this app (left sidebar) and paste the key, then click <strong>Save</strong>.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span><i data-lucide="bell" class="orb-icon"></i> Notification System</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="accordion-body">
+          <div class="accordion-content">
+            <ol class="steps">
+              <li><strong>Reminder:</strong> Shown before the task is due (based on your configured duration).</li>
+              <li><strong>Follow-up:</strong> After the due time, you will get periodic follow-ups asking if the task is completed.</li>
+              <li><strong>Pre-Alert:</strong> Shown 1 minute before a follow-up if the system was off earlier.</li>
+              <li><strong>System Message:</strong> Shown when the system was off and missed reminders/follow-ups.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ SETTINGS PAGE ═══ -->
+    <div class="page" id="page-settings">
+      <div class="page-title">Settings</div>
+      <div class="page-subtitle">Configure your Orb experience</div>
+
+      <!-- Theme Selection -->
+      <div class="card">
+        <h3><i data-lucide="palette" class="orb-icon"></i> Appearance</h3>
+        <p>Choose your preferred theme for the entire application.</p>
+        <div class="theme-toggle-group">
+          <button class="theme-option dark-opt" id="themeDarkBtn" onclick="setTheme('dark')">
+            <div class="theme-preview"></div>
+            <div class="theme-name">Dark</div>
+            <div class="theme-desc">Easy on the eyes</div>
+          </button>
+          <button class="theme-option light-opt" id="themeLightBtn" onclick="setTheme('light')">
+            <div class="theme-preview"></div>
+            <div class="theme-name">Light</div>
+            <div class="theme-desc">Clean & bright</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="gem" class="orb-icon"></i> Floating Quick Access Orb</h3>
+        <p>A floating orb that stays on your desktop for quick access to Orb windows and task overview.</p>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Enable Floating Orb</div>
+            <div class="toggle-desc">When enabled, a draggable orb appears on your desktop. Click it to open the quick panel with window shortcuts and task events.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="orbToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-status off" id="orbToggleStatus"><i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled</div>
+      </div>
+
+      <!-- Voice Assistant / Microphone -->
+      <div class="card">
+        <h3><i data-lucide="mic" class="orb-icon"></i> Voice Assistant</h3>
+        <p>Control Orb with your voice. Press <strong>Ctrl+Shift+V</strong> to activate voice commands. Speak naturally to create tasks, open windows, manage tasks, and more.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">When enabled, the app can access your microphone <strong>only</strong> when you activate it. The mic is released immediately after processing your command. No audio is recorded or stored.</p>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Enable Microphone Access</div>
+            <div class="toggle-desc">Allow Orb to use your microphone for voice commands. The mic is only active while the orb is rotating — never in the background.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="voiceToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-status off" id="voiceToggleStatus"><i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled — Voice commands are off</div>
+        <div style="margin-top: 14px; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elevated); font-size: 12px; color: var(--text-secondary); line-height: 1.7;">
+          <strong style="color: var(--accent);">How to use:</strong><br>
+          1. Enable microphone access above<br>
+          2. Press <strong>Ctrl+Shift+V</strong> to start listening<br>
+          3. Orb starts rotating — speak your command<br>
+          4. Orb responds with voice and performs the action<br>
+          <em>Note: You can single-click the orb to instantly stop or cancel the voice agent.</em><br>
+          <br>
+          <strong style="color: var(--text-muted);">Example commands:</strong><br>
+          • "Create task credit the payment at 5pm today remind me 5 minutes before in quadrant 1"<br>
+          • "Show my tasks" • "Open calendar" • "Delete review PR"<br>
+          • "Complete morning standup" • "Close history window"<br>
+          • "Change the theme to light mode" • "Show only my urgent tasks"<br>
+          • "Turn on auto start" • "Snooze that notification for a bit"
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="rocket" class="orb-icon"></i> Start with System</h3>
+        <p>When enabled, Orb will launch automatically when your computer starts up. It runs silently in the background and shows a notification confirming it is active.</p>
+        <p style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">When disabled, you need to open the app manually (double-click or Start Menu). The Home window will appear on manual launch.</p>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Auto-start on Boot</div>
+            <div class="toggle-desc">Launch Orb automatically when your computer powers on. The app runs in the background — open the Home page anytime from the system tray or app icon.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="autoStartToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="toggle-status off" id="autoStartToggleStatus"><i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled</div>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="monitor" class="orb-icon"></i> System Tray Configuration</h3>
+        <p>Orb lives in your system tray. Right‑click the tray icon to access:</p>
+        <ul style="margin-top: 8px;">
+          <li><i data-lucide="bar-chart-2" class="orb-icon"></i> Open History</li>
+          <li><i data-lucide="bot" class="orb-icon"></i> Open AI Assistant</li>
+          <li><i data-lucide="calendar" class="orb-icon"></i> Open Calendar</li>
+          <li><i data-lucide="log-out" class="orb-icon"></i> Exit Orb</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="timer" class="orb-icon"></i> Task Priority Levels</h3>
+        <ul>
+          <li>🔴 <strong>Quadrant 1 (Red):</strong> Urgent & Important</li>
+          <li>🔵 <strong>Quadrant 2 (Blue):</strong> Not Urgent but Important</li>
+          <li>🟡 <strong>Quadrant 3 (Yellow):</strong> Urgent but Not Important</li>
+          <li>⚪ <strong>Quadrant 4 (Gray):</strong> Not Urgent & Not Important</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ═══ API KEY PAGE ═══ -->
+    <div class="page" id="page-apikey">
+      <div class="page-title">API Key</div>
+      <div class="page-subtitle">Manage your Groq API key for AI features</div>
+
+      <div class="card">
+        <h3><i data-lucide="key" class="orb-icon"></i> API Key Status</h3>
+        <div class="api-status unset" id="apiStatus">
+          <div class="dot"></div>
+          <span id="apiStatusText">Checking...</span>
+        </div>
+
+        <div class="api-input-group">
+          <input type="password" class="api-input" id="apiKeyInput" placeholder="Paste your Groq API key here..." autocomplete="off">
+          <button class="btn btn-primary" onclick="saveKey()">Save</button>
+        </div>
+
+        <button class="btn btn-danger" onclick="deleteKey()"><i data-lucide="trash-2" class="orb-icon"></i> Delete API Key</button>
+
+        <div class="api-feedback" id="apiFeedback"></div>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="info" class="orb-icon"></i> About the API Key</h3>
+        <ul>
+          <li>The API key is used <strong>only</strong> for the AI Assistant feature.</li>
+          <li>All other features (tasks, reminders, follow-ups, reports) work <strong>without</strong> an API key.</li>
+          <li>Your key is stored locally on your computer and is never sent anywhere except to the Groq API.</li>
+          <li>You can delete your key at any time using the button above.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3><i data-lucide="external-link" class="orb-icon"></i> Get a Free API Key</h3>
+        <ol class="steps">
+          <li>Visit <strong>console.groq.com</strong> and create a free account.</li>
+          <li>Go to <strong>API Keys</strong> in the dashboard.</li>
+          <li>Click <strong>"Create API Key"</strong>, name it, and copy it.</li>
+          <li>Paste it in the field above and click <strong>Save</strong>.</li>
+        </ol>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ── Navigation ──
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = document.querySelectorAll('.page');
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const pageId = item.dataset.page;
+
+        navItems.forEach(n => n.classList.remove('active'));
+        pages.forEach(p => p.classList.remove('active'));
+
+        item.classList.add('active');
+        const page = document.getElementById('page-' + pageId);
+        page.classList.add('active');
+      });
+    });
+
+    // ── Accordion ──
+    function toggleAccordion(header) {
+      const item = header.parentElement;
+      item.classList.toggle('open');
+    }
+
+    // ── Theme Toggle ──
+    async function loadTheme() {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        const theme = t || 'dark';
+        updateThemeButtons(theme);
+      } catch(e) {
+        updateThemeButtons('dark');
+      }
+    }
+
+    function updateThemeButtons(theme) {
+      document.getElementById('themeDarkBtn').classList.toggle('active', theme === 'dark');
+      document.getElementById('themeLightBtn').classList.toggle('active', theme === 'light');
+    }
+
+    async function setTheme(theme) {
+      try {
+        await window.settingsAPI.setTheme(theme);
+        document.documentElement.setAttribute('data-theme', theme);
+        updateThemeButtons(theme);
+      } catch(e) {
+        console.error('Error setting theme:', e);
+      }
+    }
+
+    // ── API Key Management ──
+    async function checkApiKeyStatus() {
+      try {
+        const key = await window.apiKey.get();
+        const statusEl = document.getElementById('apiStatus');
+        const statusText = document.getElementById('apiStatusText');
+
+        if (key) {
+          statusEl.className = 'api-status set';
+          statusText.innerHTML = '<i data-lucide="check-circle-2" class="orb-icon sm"></i> API Key is set — AI features are enabled';
+        } else {
+          statusEl.className = 'api-status unset';
+          statusText.innerHTML = '<i data-lucide="alert-triangle" class="orb-icon sm"></i> No API Key set — AI features are disabled';
+        }
+        lucide.createIcons();
+      } catch (e) {
+        console.error('Error checking API key:', e);
+      }
+    }
+
+    function showFeedback(msg, type) {
+      const el = document.getElementById('apiFeedback');
+      el.innerHTML = msg;
+      lucide.createIcons();
+      el.className = 'api-feedback ' + type;
+      setTimeout(() => {
+        el.className = 'api-feedback';
+      }, 4000);
+    }
+
+    async function saveKey() {
+      const input = document.getElementById('apiKeyInput');
+      const key = input.value.trim();
+
+      if (!key) {
+        showFeedback('<i data-lucide="alert-triangle" class="orb-icon sm"></i> Please enter an API key', 'error');
+        return;
+      }
+
+      try {
+        await window.apiKey.save(key);
+        input.value = '';
+        showFeedback('<i data-lucide="check-circle-2" class="orb-icon sm"></i> API Key saved successfully!', 'success');
+        checkApiKeyStatus();
+      } catch (e) {
+        showFeedback('<i data-lucide="x" class="orb-icon sm"></i> Failed to save API key', 'error');
+      }
+    }
+
+    async function deleteKey() {
+      try {
+        await window.apiKey.delete();
+        showFeedback('<i data-lucide="check-circle-2" class="orb-icon sm"></i> API Key deleted!', 'success');
+        checkApiKeyStatus();
+      } catch (e) {
+        showFeedback('<i data-lucide="x" class="orb-icon sm"></i> Failed to delete API key', 'error');
+      }
+    }
+
+    // ── Floating Orb Toggle ──
+    const orbToggle = document.getElementById('orbToggle');
+    const orbToggleStatus = document.getElementById('orbToggleStatus');
+
+    async function loadOrbToggleState() {
+      try {
+        const val = await window.settingsAPI.getFloatingOrbEnabled();
+        // Default to enabled if setting has never been set
+        const enabled = val !== 'false';
+        orbToggle.checked = enabled;
+        updateOrbStatusLabel(enabled);
+      } catch (e) {
+        console.error('Error loading orb toggle state:', e);
+        // Default to enabled on error
+        orbToggle.checked = true;
+        updateOrbStatusLabel(true);
+      }
+    }
+
+    function updateOrbStatusLabel(enabled) {
+      if (enabled) {
+        orbToggleStatus.classList.remove('off');
+        orbToggleStatus.innerHTML = '<i data-lucide="check-circle-2" class="orb-icon sm"></i> Enabled — Orb is visible on your desktop';
+      } else {
+        orbToggleStatus.classList.add('off');
+        orbToggleStatus.innerHTML = '<i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled — Orb is hidden';
+      }
+      lucide.createIcons();
+    }
+
+    orbToggle.addEventListener('change', async () => {
+      const enabled = orbToggle.checked;
+      updateOrbStatusLabel(enabled);
+      try {
+        await window.settingsAPI.setFloatingOrbEnabled(enabled);
+      } catch (e) {
+        console.error('Error saving orb toggle:', e);
+        // Revert on error
+        orbToggle.checked = !enabled;
+        updateOrbStatusLabel(!enabled);
+      }
+    });
+
+    // ── Auto-Start Toggle ──
+    const autoStartToggle = document.getElementById('autoStartToggle');
+    const autoStartToggleStatus = document.getElementById('autoStartToggleStatus');
+
+    async function loadAutoStartToggleState() {
+      try {
+        const val = await window.settingsAPI.getAutoStartEnabled();
+        // Default to enabled if setting has never been set
+        const enabled = val !== 'false';
+        autoStartToggle.checked = enabled;
+        updateAutoStartStatusLabel(enabled);
+      } catch (e) {
+        console.error('Error loading auto-start toggle state:', e);
+        autoStartToggle.checked = true;
+        autoStartToggleStatus.classList.remove('off');
+        autoStartToggleStatus.innerHTML = '<i data-lucide="check-circle-2" class="orb-icon sm"></i> Enabled — Orb starts with your system';
+        lucide.createIcons();
+      }
+    }
+
+    function updateAutoStartStatusLabel(enabled) {
+      if (enabled) {
+        autoStartToggleStatus.classList.remove('off');
+        autoStartToggleStatus.innerHTML = '<i data-lucide="check-circle-2" class="orb-icon sm"></i> Enabled — Orb starts with your system';
+      } else {
+        autoStartToggleStatus.classList.add('off');
+        autoStartToggleStatus.innerHTML = '<i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled — Open manually to start';
+      }
+      lucide.createIcons();
+    }
+
+    autoStartToggle.addEventListener('change', async () => {
+      const enabled = autoStartToggle.checked;
+      updateAutoStartStatusLabel(enabled);
+      try {
+        await window.settingsAPI.setAutoStartEnabled(enabled);
+      } catch (e) {
+        console.error('Error saving auto-start toggle:', e);
+        // Revert on error
+        autoStartToggle.checked = !enabled;
+        updateAutoStartStatusLabel(!enabled);
+      }
+    });
+
+    // ── Voice Assistant Toggle ──
+    const voiceToggle = document.getElementById('voiceToggle');
+    const voiceToggleStatus = document.getElementById('voiceToggleStatus');
+
+    async function loadVoiceToggleState() {
+      try {
+        const val = await window.settingsAPI.getVoiceEnabled();
+        const enabled = val === 'true';
+        voiceToggle.checked = enabled;
+        updateVoiceStatusLabel(enabled);
+      } catch (e) {
+        console.error('Error loading voice toggle state:', e);
+        voiceToggle.checked = false;
+        updateVoiceStatusLabel(false);
+      }
+    }
+
+    function updateVoiceStatusLabel(enabled) {
+      if (enabled) {
+        voiceToggleStatus.classList.remove('off');
+        voiceToggleStatus.innerHTML = '<i data-lucide="check-circle-2" class="orb-icon sm"></i> Enabled — Double-click orb to use voice commands';
+      } else {
+        voiceToggleStatus.classList.add('off');
+        voiceToggleStatus.innerHTML = '<i data-lucide="pause-circle" class="orb-icon sm"></i> Disabled — Voice commands are off';
+      }
+      lucide.createIcons();
+    }
+
+    voiceToggle.addEventListener('change', async () => {
+      const enabled = voiceToggle.checked;
+      updateVoiceStatusLabel(enabled);
+      try {
+        await window.settingsAPI.setVoiceEnabled(enabled);
+      } catch (e) {
+        console.error('Error saving voice toggle:', e);
+        voiceToggle.checked = !enabled;
+        updateVoiceStatusLabel(!enabled);
+      }
+    });
+
+    // ── Init ──
+    window.addEventListener('DOMContentLoaded', () => {
+      checkApiKeyStatus();
+      loadOrbToggleState();
+      loadAutoStartToggleState();
+      loadVoiceToggleState();
+      loadTheme();
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

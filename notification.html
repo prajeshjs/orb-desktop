@@ -1,0 +1,157 @@
+<!doctype html>
+<html data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Orb Notification</title>
+    <link rel="stylesheet" href="theme.css">
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+      * { margin: 0; padding: 0; }
+
+      body {
+        padding: 10px 12px;
+        background: var(--bg-card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: notifSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+
+      .title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        letter-spacing: 0.3px;
+      }
+
+      #closeBtn {
+        width: 20px;
+        height: 20px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--bg-elevated);
+        color: var(--text-muted);
+        font-size: 11px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      #closeBtn:hover {
+        background: var(--danger);
+        color: #fff;
+        border-color: var(--danger);
+      }
+
+      .task-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 4px;
+        word-wrap: break-word;
+      }
+
+      .task-time {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <img src="assets/orb-dark.png" class="app-logo dark-logo" alt="Orb" style="height: 14px;">
+        <img src="assets/orb-light.png" class="app-logo light-logo" alt="Orb" style="height: 14px;">
+        <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Orb</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; line-height: 1; margin-top: -6px; cursor: pointer;">...</span>
+        <button id="closeBtn" title="Close" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; margin-top: -2px;"><i data-lucide="x" class="neon-icon neon-icon-sm"></i></button>
+      </div>
+    </div>
+    <div class="title" id="titleLabel" style="font-size: 14px; margin-bottom: 4px; color: var(--text);"><i data-lucide="alarm-clock" class="neon-icon neon-icon-sm"></i> Reminder</div>
+    <div class="task-name" id="taskName" style="color: var(--text-secondary); font-weight: normal;"></div>
+    <div class="task-time" id="taskTime"></div>
+
+    <script>
+      document.getElementById('closeBtn').onclick = () => window.close();
+
+      // ── Use the CORRECT preload API: notificationAPI ──
+      window.notificationAPI.onData((data) => {
+        // data = { type: 'reminder'|'prealert'|'message', title: '...', body: '...' }
+
+        // Set title icon/label based on type
+        const titleEl = document.getElementById('titleLabel');
+        const titleText = data.type;
+        if (data.type === 'reminder') {
+          titleEl.innerHTML = '<i data-lucide="alarm-clock" class="neon-icon neon-icon-sm"></i> Reminder';
+        } else if (data.type === 'prealert') {
+          titleEl.innerHTML = '<i data-lucide="zap" class="neon-icon neon-icon-sm"></i> Pre-Alert';
+        } else {
+          titleEl.innerHTML = '<i data-lucide="megaphone" class="neon-icon neon-icon-sm"></i> Notification';
+        }
+
+        // Set task name from body
+        document.getElementById('taskName').textContent = data.body || data.title || 'Unknown';
+
+        // Set subtitle from title
+        document.getElementById('taskTime').textContent = data.title || '';
+
+        if (window.lucide) window.lucide.createIcons();
+
+        // countdown auto-close
+        const duration = data.duration || 7500;
+        setTimeout(() => window.close(), duration + 500);
+      });
+    </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>

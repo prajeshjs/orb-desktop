@@ -1,0 +1,24 @@
+# API Keys & Secrets (CRITICAL: Do not upload)
+.env
+
+# Dependencies
+node_modules/
+
+# Build outputs & Executables
+dist/
+*.exe
+
+# Databases (Your local testing data)
+*.sqlite
+*.db
+
+# Website folder (Already deployed separately on Vercel)
+website/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs and Cache
+*.log
+.cache/

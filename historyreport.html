@@ -1,0 +1,1492 @@
+<!doctype html>
+<html data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>History & Report</title>
+  <link rel="stylesheet" href="theme.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    /* ===== TAB BAR ===== */
+    .tab-bar {
+      display: flex;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-bottom: 3px solid transparent;
+      font-family: inherit;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-secondary);
+      background: var(--accent-subtle);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ===== SECTIONS ===== */
+    .section {
+      display: none;
+      padding: 16px;
+    }
+
+    .section.active {
+      display: block;
+      animation: pageIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    /* ===== REPORT SECTION ===== */
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .report-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .report-header input[type="date"] {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    .report-header input[type="date"]:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 10px;
+      text-align: center;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .summary-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .summary-card .card-value {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .card-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-created .card-value { color: var(--prio-blue-text); }
+    .card-completed .card-value { color: var(--success); }
+    .card-notcompleted .card-value { color: var(--warning); }
+    .card-carryover .card-value { color: var(--prio-yellow-text); }
+    .card-deleted .card-value { color: var(--danger); }
+
+    /* Priority Breakdown */
+    .priority-section {
+      margin-bottom: 18px;
+    }
+
+    .priority-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .priority-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    .priority-table th,
+    .priority-table td {
+      padding: 8px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--table-border);
+      transition: background 0.2s ease;
+    }
+
+    .priority-table th {
+      background: var(--table-header-bg);
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .priority-table td {
+      color: var(--text);
+    }
+
+    .priority-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .priority-table tr:hover td {
+      background: var(--table-row-hover);
+    }
+
+    .prio-label {
+      text-align: left !important;
+      font-weight: 600;
+    }
+
+    .prio-red { color: var(--prio-red-text); }
+    .prio-blue { color: var(--prio-blue-text); }
+    .prio-yellow { color: var(--prio-yellow-text); }
+    .prio-gray { color: var(--prio-gray-text); }
+
+    /* Progress Bar */
+    .progress-section {
+      margin-bottom: 14px;
+    }
+
+    .progress-section h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .progress-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .progress-bar-track {
+      flex: 1;
+      height: 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 7px;
+      background: var(--accent);
+      transition: width 0.5s ease;
+      min-width: 0;
+    }
+
+    .progress-percent {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 60px;
+      text-align: right;
+    }
+
+    /* ===== HISTORY SECTION ===== */
+    .history-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .history-filters input,
+    .history-filters select {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s ease;
+    }
+
+    .history-filters input:focus,
+    .history-filters select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    .history-filters input[type="text"] {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .history-filters input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .history-filters input[type="date"] {
+      width: 140px;
+    }
+
+    .history-filters select {
+      width: 140px;
+    }
+
+    .history-table-wrapper {
+      max-height: 420px;
+      overflow-y: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      font-size: 12px;
+    }
+
+    .history-table th,
+    .history-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--table-border);
+      text-align: left;
+      transition: background 0.2s ease;
+    }
+
+    .history-table th {
+      background: var(--table-header-bg);
+      position: sticky;
+      top: 0;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      z-index: 2;
+    }
+
+    .history-table td {
+      color: var(--text);
+    }
+
+    .history-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .history-table tr:hover td {
+      background: var(--table-row-hover);
+    }
+
+    .action-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .badge-created { background: var(--prio-blue-bg); color: var(--prio-blue-text); border-color: var(--prio-blue-border); }
+    .badge-edited { background: var(--accent-subtle); color: var(--text-secondary); border-color: var(--border); }
+    .badge-completed { background: rgba(126,201,126,0.1); color: var(--success); border-color: rgba(126,201,126,0.3); }
+    .badge-notcompleted { background: rgba(212,168,74,0.1); color: var(--warning); border-color: rgba(212,168,74,0.3); }
+    .badge-deleted { background: rgba(204,85,85,0.1); color: var(--danger); border-color: rgba(204,85,85,0.3); }
+    .badge-reminder { background: var(--accent-subtle); color: var(--text-secondary); border-color: var(--border); }
+    .badge-followup { background: var(--accent-subtle); color: var(--text-secondary); border-color: var(--border); }
+    .badge-snoozed { background: rgba(212,168,74,0.1); color: var(--warning); border-color: rgba(212,168,74,0.3); }
+    .badge-carryover { background: var(--prio-yellow-bg); color: var(--prio-yellow-text); border-color: var(--prio-yellow-border); }
+    .badge-undo { background: var(--accent-subtle); color: var(--text-secondary); border-color: var(--border); }
+
+    .no-data {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ===== ANALYTICS DASHBOARD ===== */
+    .analytics-divider {
+      margin: 32px 0 24px;
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    .analytics-heading {
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 24px;
+      color: var(--text);
+      letter-spacing: 0.3px;
+    }
+
+    .analytics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 8px;
+    }
+
+    @media (max-width: 900px) {
+      .analytics-grid { grid-template-columns: 1fr; }
+      .summary-cards { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .graph-container {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      position: relative;
+      overflow-anchor: none;
+      transition: all 0.3s ease;
+    }
+
+    .graph-container:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    #heatmapContainer {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #heatmapContainer .heatmap-grid {
+      flex: 1;
+      min-height: 280px;
+    }
+
+    #activityGraphContainer .chart-area {
+      position: relative;
+      height: 280px;
+      width: 100%;
+    }
+
+    .graph-container h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .graph-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      justify-content: center;
+    }
+
+    .activity-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .activity-controls .graph-toggle {
+      margin-bottom: 0;
+    }
+
+    .metric-select {
+      padding: 6px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .metric-select:hover {
+      border-color: var(--border-hover);
+    }
+
+    .metric-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px var(--accent-subtle);
+    }
+
+    .graph-toggle button {
+      padding: 6px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      background: var(--bg-elevated);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: inherit;
+    }
+
+    .graph-toggle button:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      border-color: var(--border-hover);
+    }
+
+    .graph-toggle button.active {
+      background: var(--accent);
+      color: var(--text-inverse);
+      border-color: var(--accent);
+    }
+
+    /* Heatmap */
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: 40px repeat(24, 1fr);
+      grid-template-rows: auto repeat(7, 1fr);
+      gap: 2px;
+      font-size: 10px;
+      overflow: hidden;
+    }
+
+    .heatmap-label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 4px;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    .heatmap-hour {
+      text-align: center;
+      font-size: 9px;
+      color: var(--text-muted);
+      padding: 2px 0;
+      font-weight: 600;
+    }
+
+    .heatmap-cell {
+      border-radius: 3px;
+      background: var(--bg-elevated);
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      position: relative;
+      min-height: 0;
+      border: 1px solid transparent;
+    }
+
+    .heatmap-cell:hover {
+      transform: scale(1.15);
+      box-shadow: var(--shadow-md);
+      z-index: 5;
+    }
+
+    /* Priority Matrix */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .matrix-quadrant {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      min-height: 120px;
+    }
+
+    .matrix-quadrant:hover {
+      transform: scale(1.04);
+      box-shadow: var(--shadow-md);
+    }
+
+    .matrix-quadrant .mq-count {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .matrix-quadrant .mq-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.9;
+    }
+
+    /* Carry Over Trend */
+    #carryOverContainer {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #carryOverContainer .chart-area {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      min-height: 240px;
+    }
+
+    #carryOverContainer .activity-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    /* Shared Tooltip */
+    .analytics-tooltip {
+      position: fixed;
+      background: var(--bg-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.15s;
+      max-width: 220px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .analytics-tooltip.visible {
+      opacity: 1;
+    }
+
+    .analytics-tooltip strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--accent);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+  <!-- Shared tooltip for analytics graphs -->
+  <div class="analytics-tooltip" id="analyticsTooltip"></div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabReport" onclick="switchTab('report')"><i data-lucide="bar-chart-2" class="orb-icon sm"></i> Report</button>
+    <button class="tab-btn" id="tabHistory" onclick="switchTab('history')"><i data-lucide="scroll" class="orb-icon sm"></i> History</button>
+  </div>
+
+  <!-- REPORT SECTION -->
+  <div id="reportSection" class="section active">
+    <div class="report-header">
+      <h2><i data-lucide="bar-chart-2" class="orb-icon"></i> Daily Report</h2>
+      <input type="date" id="reportDate" />
+    </div>
+
+    <div class="summary-cards">
+      <div class="summary-card card-created">
+        <div class="card-value" id="totalCreated">0</div>
+        <div class="card-label">Created</div>
+      </div>
+      <div class="summary-card card-completed">
+        <div class="card-value" id="totalCompleted">0</div>
+        <div class="card-label">Completed</div>
+      </div>
+      <div class="summary-card card-notcompleted">
+        <div class="card-value" id="totalNotCompleted">0</div>
+        <div class="card-label">Not Done</div>
+      </div>
+      <div class="summary-card card-carryover">
+        <div class="card-value" id="totalCarriedOver">0</div>
+        <div class="card-label">Carried Over</div>
+      </div>
+      <div class="summary-card card-deleted">
+        <div class="card-value" id="totalDeleted">0</div>
+        <div class="card-label">Deleted</div>
+      </div>
+    </div>
+
+    <div class="priority-section">
+      <h3><i data-lucide="target" class="orb-icon"></i> Priority Breakdown</h3>
+      <table class="priority-table">
+        <thead>
+          <tr>
+            <th style="text-align:left">Priority</th>
+            <th>Created</th>
+            <th>Completed</th>
+            <th>Not Completed</th>
+          </tr>
+        </thead>
+        <tbody id="priorityBody">
+          <tr><td class="prio-label prio-red">🔴 RED — Urgent & Important</td><td id="p1Created">0</td><td id="p1Completed">0</td><td id="p1NotCompleted">0</td></tr>
+          <tr><td class="prio-label prio-blue">🔵 BLUE — Important, not urgent</td><td id="p2Created">0</td><td id="p2Completed">0</td><td id="p2NotCompleted">0</td></tr>
+          <tr><td class="prio-label prio-yellow">🟡 YELLOW — Urgent, not important</td><td id="p3Created">0</td><td id="p3Completed">0</td><td id="p3NotCompleted">0</td></tr>
+          <tr><td class="prio-label prio-gray">⚪ GRAY — Low priority</td><td id="p4Created">0</td><td id="p4Completed">0</td><td id="p4NotCompleted">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="progress-section">
+      <h3><i data-lucide="check-circle-2" class="orb-icon"></i> Completion Progress</h3>
+      <div class="progress-container">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+        </div>
+        <div class="progress-percent" id="progressPercent">0%</div>
+      </div>
+    </div>
+
+    <!-- PRODUCTIVITY ANALYTICS -->
+    <hr class="analytics-divider" />
+    <h2 class="analytics-heading"><i data-lucide="trending-up" class="orb-icon lg"></i> Productivity Analytics</h2>
+
+    <div class="analytics-grid">
+      <div class="graph-container" id="activityGraphContainer">
+        <h3><i data-lucide="bar-chart-2" class="orb-icon"></i> Main Activity Graph</h3>
+        <div class="activity-controls">
+          <div class="graph-toggle" id="activityToggle">
+            <button class="active" data-mode="date">Day</button>
+            <button data-mode="week">Week</button>
+            <button data-mode="month">Month</button>
+          </div>
+          <select class="metric-select" id="metricSelect">
+            <option value="created">Created</option>
+            <option value="completed">Completed</option>
+            <option value="deleted">Deleted</option>
+          </select>
+        </div>
+        <div class="chart-area">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+
+      <div class="graph-container" id="heatmapContainer">
+        <h3><i data-lucide="layout-grid" class="orb-icon"></i> Productivity Heatmap</h3>
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+      </div>
+
+      <div class="graph-container" id="matrixContainer">
+        <h3><i data-lucide="target" class="orb-icon"></i> Priority Focus Matrix</h3>
+        <div class="matrix-grid" id="matrixGrid"></div>
+      </div>
+
+      <div class="graph-container" id="carryOverContainer">
+        <div class="activity-controls">
+          <h3 style="margin-bottom:0"><i data-lucide="trending-up" class="orb-icon"></i> Carry Over Trend</h3>
+          <select class="metric-select" id="carryOverFilter">
+            <option value="all">All Carry Over</option>
+            <option value="fixed">Fixed</option>
+            <option value="dynamic">Dynamic</option>
+            <option value="auto">Auto Carry Over</option>
+          </select>
+        </div>
+        <div class="chart-area">
+          <canvas id="carryOverChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY SECTION -->
+  <div id="historySection" class="section">
+    <h2 style="font-size:16px;margin-bottom:12px;font-weight:700;"><i data-lucide="scroll" class="orb-icon"></i> Task Event History</h2>
+
+    <div class="history-filters">
+      <input type="date" id="historyDate" />
+      <select id="historyPriority">
+        <option value="">All Priorities</option>
+        <option value="1">🔴 RED</option>
+        <option value="2">🔵 BLUE</option>
+        <option value="3">🟡 YELLOW</option>
+        <option value="4">⚪ GRAY</option>
+      </select>
+      <select id="historyAction">
+        <option value="">All Actions</option>
+        <option value="Task Created">Task Created</option>
+        <option value="Task Edited">Task Edited</option>
+        <option value="Reminder Triggered">Reminder Triggered</option>
+        <option value="Follow-up Triggered">Follow-up Triggered</option>
+        <option value="Snoozed">Snoozed</option>
+        <option value="Marked Completed">Marked Completed</option>
+        <option value="Marked Not Completed">Marked Not Completed</option>
+        <option value="Carry Over Selected">Carry Over Selected</option>
+        <option value="Undo Carry Over">Undo Carry Over</option>
+        <option value="Deleted">Deleted</option>
+      </select>
+      <input type="text" id="historySearch" placeholder="Search task title..." />
+    </div>
+
+    <div class="history-table-wrapper">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Task Title</th>
+            <th>Priority</th>
+            <th>Action</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody">
+          <tr><td colspan="6" class="no-data">No events found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // ===== TAB SWITCHING =====
+    function switchTab(tab) {
+      const reportSection = document.getElementById('reportSection');
+      const historySection = document.getElementById('historySection');
+      const tabReport = document.getElementById('tabReport');
+      const tabHistory = document.getElementById('tabHistory');
+
+      if (tab === 'report') {
+        reportSection.classList.add('active');
+        historySection.classList.remove('active');
+        tabReport.classList.add('active');
+        tabHistory.classList.remove('active');
+        loadReport();
+      } else {
+        historySection.classList.add('active');
+        reportSection.classList.remove('active');
+        tabHistory.classList.add('active');
+        tabReport.classList.remove('active');
+        loadHistory();
+      }
+    }
+
+    // ===== REPORT LOGIC =====
+    function getTodayStr() {
+      const d = new Date();
+      return d.getFullYear() + '-' +
+        String(d.getMonth() + 1).padStart(2, '0') + '-' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    document.getElementById('reportDate').value = getTodayStr();
+
+    async function loadReport() {
+      const dateStr = document.getElementById('reportDate').value;
+      if (!dateStr) return;
+
+      try {
+        const data = await window.historyReportAPI.getReportByDate(dateStr);
+        const ov = data.overview;
+
+        document.getElementById('totalCreated').textContent = ov.totalCreated;
+        document.getElementById('totalCompleted').textContent = ov.totalCompleted;
+        document.getElementById('totalNotCompleted').textContent = ov.totalNotCompleted;
+        document.getElementById('totalCarriedOver').textContent = ov.totalCarriedOver;
+        document.getElementById('totalDeleted').textContent = ov.totalDeleted;
+
+        const pb = data.priorityBreakdown;
+        for (let p = 1; p <= 4; p++) {
+          document.getElementById(`p${p}Created`).textContent = pb[p] ? pb[p].created : 0;
+          document.getElementById(`p${p}Completed`).textContent = pb[p] ? pb[p].completed : 0;
+          document.getElementById(`p${p}NotCompleted`).textContent = pb[p] ? pb[p].notCompleted : 0;
+        }
+
+        const pct = ov.completionPercent || 0;
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressPercent').textContent = pct + '%';
+
+        // Keep the progress bar using the accent color (B&W consistent)
+        const fill = document.getElementById('progressFill');
+        if (pct >= 75) fill.style.background = 'var(--success)';
+        else if (pct >= 50) fill.style.background = 'var(--warning)';
+        else if (pct >= 25) fill.style.background = 'var(--prio-yellow-text)';
+        else fill.style.background = 'var(--danger)';
+
+      } catch (err) {
+        console.error('Failed to load report:', err);
+      }
+    }
+
+    document.getElementById('reportDate').addEventListener('change', loadReport);
+
+    // ===== HISTORY LOGIC =====
+    const priorityLabels = { 1: '🔴 RED', 2: '🔵 BLUE', 3: '🟡 YELLOW', 4: '⚪ GRAY' };
+
+    function getActionBadgeClass(action) {
+      const map = {
+        'Task Created': 'badge-created',
+        'Task Edited': 'badge-edited',
+        'Marked Completed': 'badge-completed',
+        'Marked Not Completed': 'badge-notcompleted',
+        'Deleted': 'badge-deleted',
+        'Reminder Triggered': 'badge-reminder',
+        'Follow-up Triggered': 'badge-followup',
+        'Snoozed': 'badge-snoozed',
+        'Carry Over Selected': 'badge-carryover',
+        'Undo Carry Over': 'badge-undo',
+      };
+      return map[action] || '';
+    }
+
+    async function loadHistory() {
+      const filters = {};
+      const dateVal = document.getElementById('historyDate').value;
+      const prioVal = document.getElementById('historyPriority').value;
+      const actionVal = document.getElementById('historyAction').value;
+      const searchVal = document.getElementById('historySearch').value.trim();
+
+      if (dateVal) filters.date = dateVal;
+      if (prioVal) filters.priority = parseInt(prioVal, 10);
+      if (actionVal) filters.action_type = actionVal;
+      if (searchVal) filters.search = searchVal;
+
+      try {
+        const events = await window.historyReportAPI.getHistoryEvents(filters);
+        const tbody = document.getElementById('historyBody');
+        tbody.innerHTML = '';
+
+        if (!events || events.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="no-data">No events found.</td></tr>';
+          return;
+        }
+
+        events.forEach(ev => {
+          const ts = new Date(ev.timestamp);
+          const dateDisplay = ts.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          const timeDisplay = ts.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+          const tr = document.createElement('tr');
+
+          const tdDate = document.createElement('td');
+          tdDate.textContent = dateDisplay;
+          tr.appendChild(tdDate);
+
+          const tdTime = document.createElement('td');
+          tdTime.textContent = timeDisplay;
+          tr.appendChild(tdTime);
+
+          const tdTitle = document.createElement('td');
+          tdTitle.textContent = ev.task_title || '-';
+          tdTitle.style.maxWidth = '180px';
+          tdTitle.style.overflow = 'hidden';
+          tdTitle.style.textOverflow = 'ellipsis';
+          tdTitle.style.whiteSpace = 'nowrap';
+          tdTitle.title = ev.task_title || '';
+          tr.appendChild(tdTitle);
+
+          const tdPrio = document.createElement('td');
+          tdPrio.textContent = ev.priority ? (priorityLabels[ev.priority] || ev.priority) : '-';
+          tr.appendChild(tdPrio);
+
+          const tdAction = document.createElement('td');
+          const badge = document.createElement('span');
+          badge.className = 'action-badge ' + getActionBadgeClass(ev.action_type);
+          badge.textContent = ev.action_type;
+          tdAction.appendChild(badge);
+          tr.appendChild(tdAction);
+
+          const tdNotes = document.createElement('td');
+          tdNotes.textContent = ev.notes || '-';
+          tdNotes.style.maxWidth = '120px';
+          tdNotes.style.overflow = 'hidden';
+          tdNotes.style.textOverflow = 'ellipsis';
+          tdNotes.style.whiteSpace = 'nowrap';
+          tdNotes.title = ev.notes || '';
+          tr.appendChild(tdNotes);
+
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      }
+    }
+
+    document.getElementById('historyDate').addEventListener('change', loadHistory);
+    document.getElementById('historyPriority').addEventListener('change', loadHistory);
+    document.getElementById('historyAction').addEventListener('change', loadHistory);
+    document.getElementById('historySearch').addEventListener('input', loadHistory);
+
+    // ===== INITIAL LOAD =====
+    loadReport();
+
+    // =============================================================
+    // ===== PRODUCTIVITY ANALYTICS DASHBOARD =====
+    // =============================================================
+
+    let activityChart = null;
+    let currentMode = 'date';
+    const tooltip = document.getElementById('analyticsTooltip');
+
+    // ── Chart.js theme-aware colors ──
+    function getChartTextColor() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#999';
+    }
+    function getChartGridColor() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#222';
+    }
+    function getChartBorderColor() {
+      return getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#222';
+    }
+
+    // ── Tooltip helpers ──
+    function showTooltip(e, html) {
+      tooltip.innerHTML = html;
+      tooltip.classList.add('visible');
+      const x = Math.min(e.clientX + 12, window.innerWidth - 240);
+      const y = Math.min(e.clientY - 10, window.innerHeight - 200);
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+    }
+    function hideTooltip() {
+      tooltip.classList.remove('visible');
+    }
+
+    // ── GRAPH 1: Main Activity Graph ──
+    let currentMetric = 'created';
+
+    const WEEK_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const WEEK_DB_ORDER = ['1', '2', '3', '4', '5', '6', '0'];
+    const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function getKeysForMode(mode) {
+      if (mode === 'date') return Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+      if (mode === 'week') return WEEK_DB_ORDER;
+      return Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
+    }
+
+    function getCutoffIndex(mode) {
+      const now = new Date();
+      if (mode === 'date') return now.getHours();
+      if (mode === 'week') {
+        const jsDay = now.getDay();
+        return jsDay === 0 ? 6 : jsDay - 1;
+      }
+      return now.getMonth();
+    }
+
+    const METRIC_LABELS = { created: 'Tasks Created', completed: 'Tasks Completed', deleted: 'Tasks Deleted' };
+    const METRIC_BAR_COLORS = {
+      created: { bg: 'rgba(30,136,229,0.7)', bgHover: 'rgba(30,136,229,0.9)' },
+      completed: { bg: 'rgba(126,201,126,0.7)', bgHover: 'rgba(126,201,126,0.9)' },
+      deleted: { bg: 'rgba(204,85,85,0.7)', bgHover: 'rgba(204,85,85,0.9)' }
+    };
+
+    const TREND_THEMES = {
+      created: { border: 'rgba(30,136,229,1)', bg: 'rgba(30,136,229,0.1)' },
+      completed: { border: 'rgba(126,201,126,1)', bg: 'rgba(126,201,126,0.1)' },
+      deleted: { border: 'rgba(204,85,85,1)', bg: 'rgba(204,85,85,0.1)' }
+    };
+
+    async function loadActivityGraph(mode) {
+      currentMode = mode;
+      const metric = currentMetric;
+      const textColor = getChartTextColor();
+      const gridColor = getChartGridColor();
+      const borderColor = getChartBorderColor();
+      try {
+        const data = await window.historyReportAPI.getAnalyticsData(mode);
+        const keys = getKeysForMode(mode);
+        const rawValues = keys.map(k => (data.activity[k] || {})[metric] || 0);
+        const colors = METRIC_BAR_COLORS[metric];
+        const trendTheme = TREND_THEMES[metric];
+
+        let adjustedValues = rawValues;
+        if (metric === 'created') {
+          const deletedValues = keys.map(k => (data.activity[k] || {}).deleted || 0);
+          adjustedValues = rawValues.map((v, i) => Math.max(0, v - deletedValues[i]));
+        }
+
+        const cutoff = getCutoffIndex(mode);
+        const values = adjustedValues.map((v, i) => i <= cutoff ? v : null);
+
+        if (activityChart) activityChart.destroy();
+        const ctx = document.getElementById('activityChart').getContext('2d');
+
+        if (mode === 'date') {
+          const barData = values.map((v, i) => v !== null ? { x: i + 0.5, y: v } : null).filter(d => d !== null);
+          const trendData = values.map((v, i) => v !== null ? { x: i + 0.5, y: v } : null).filter(d => d !== null);
+
+          activityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              datasets: [
+                {
+                  label: METRIC_LABELS[metric], data: barData,
+                  backgroundColor: colors.bg, hoverBackgroundColor: colors.bgHover,
+                  borderRadius: 4, borderSkipped: false, order: 2,
+                  barThickness: 'flex', maxBarThickness: 20
+                },
+                {
+                  label: 'Trend', data: trendData, type: 'line',
+                  borderColor: trendTheme.border, backgroundColor: trendTheme.bg,
+                  borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6,
+                  pointBackgroundColor: trendTheme.border,
+                  pointHoverBackgroundColor: '#fff', pointHoverBorderWidth: 2.5,
+                  pointHoverBorderColor: trendTheme.border,
+                  tension: 0.35, fill: false, order: 1, hitRadius: 10, spanGaps: false
+                }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              animation: { duration: 600, easing: 'easeOutQuart' },
+              interaction: { mode: 'nearest', intersect: true },
+              plugins: {
+                tooltip: {
+                  filter(tooltipItem) { return tooltipItem.datasetIndex === 0; },
+                  backgroundColor: 'rgba(10,10,10,0.95)', titleColor: '#fff', bodyColor: '#ccc',
+                  titleFont: { size: 13, weight: '700' }, bodyFont: { size: 12 },
+                  padding: 12, cornerRadius: 10,
+                  callbacks: {
+                    title(items) {
+                      if (!items.length) return '';
+                      const hr = Math.floor(items[0].parsed.x);
+                      const period = hr < 12 ? 'AM' : 'PM';
+                      const displayHr = hr > 12 ? hr - 12 : hr;
+                      const nextHr = hr + 1 > 12 ? hr + 1 - 12 : hr + 1;
+                      return `${displayHr}:00 – ${nextHr}:00 ${period}`;
+                    },
+                    label(item) { return `${METRIC_LABELS[metric]}: ${item.parsed.y}`; }
+                  }
+                },
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  type: 'linear', min: 0, max: 24,
+                  grid: { display: false }, border: { display: true, color: borderColor },
+                  ticks: {
+                    stepSize: 1, font: { size: 11, weight: '600' }, color: textColor,
+                    maxRotation: 0,
+                    callback(value) {
+                      if (value < 0 || value > 24 || value % 1 !== 0) return '';
+                      if (value === 0) return '0';
+                      if (value <= 12) return String(value);
+                      return String(value - 12);
+                    }
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: METRIC_LABELS[metric], font: { size: 12, weight: '600' }, color: textColor },
+                  ticks: { stepSize: 1, font: { size: 11 }, color: textColor },
+                  grid: { color: gridColor + '33' }
+                }
+              },
+              layout: { padding: { bottom: 22 } }
+            },
+            plugins: [{
+              id: 'ampmLabels',
+              afterDraw(chart) {
+                const xScale = chart.scales.x;
+                const ctx2 = chart.ctx;
+                ctx2.save();
+                ctx2.font = 'bold 12px system-ui, "Segoe UI", sans-serif';
+                ctx2.fillStyle = textColor;
+                ctx2.textAlign = 'center';
+                ctx2.textBaseline = 'top';
+                const amCenter = (xScale.getPixelForValue(0) + xScale.getPixelForValue(12)) / 2;
+                const pmCenter = (xScale.getPixelForValue(12) + xScale.getPixelForValue(24)) / 2;
+                const labelY = xScale.bottom + 5;
+                ctx2.fillText('AM', amCenter, labelY);
+                ctx2.fillText('PM', pmCenter, labelY);
+                ctx2.restore();
+              }
+            }]
+          });
+
+        } else {
+          const categoryLabels = mode === 'week' ? WEEK_LABELS : MONTH_LABELS;
+          activityChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: categoryLabels,
+              datasets: [
+                {
+                  label: METRIC_LABELS[metric], data: values,
+                  backgroundColor: colors.bg, hoverBackgroundColor: colors.bgHover,
+                  borderRadius: 4, borderSkipped: false, order: 2,
+                  barPercentage: mode === 'week' ? 0.6 : 0.5, categoryPercentage: 0.9
+                },
+                {
+                  label: 'Trend', data: values, type: 'line',
+                  borderColor: trendTheme.border, backgroundColor: trendTheme.bg,
+                  borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6,
+                  pointBackgroundColor: trendTheme.border,
+                  pointHoverBackgroundColor: '#fff', pointHoverBorderWidth: 2.5,
+                  pointHoverBorderColor: trendTheme.border,
+                  tension: 0.35, fill: false, order: 1, hitRadius: 10, spanGaps: false
+                }
+              ]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              animation: { duration: 600, easing: 'easeOutQuart' },
+              interaction: { mode: 'index', intersect: false },
+              plugins: {
+                tooltip: {
+                  filter(tooltipItem) { return tooltipItem.datasetIndex === 0; },
+                  backgroundColor: 'rgba(10,10,10,0.95)', titleColor: '#fff', bodyColor: '#ccc',
+                  titleFont: { size: 13, weight: '700' }, bodyFont: { size: 12 },
+                  padding: 12, cornerRadius: 10,
+                  callbacks: { label(item) { return `${METRIC_LABELS[metric]}: ${item.raw}`; } }
+                },
+                legend: { display: false }
+              },
+              scales: {
+                x: {
+                  grid: { display: false }, border: { display: true, color: borderColor },
+                  offset: true,
+                  ticks: {
+                    font: { size: 11, weight: '600' }, color: textColor,
+                    maxRotation: mode === 'month' ? -90 : 0,
+                    minRotation: mode === 'month' ? -90 : 0,
+                    autoSkip: false
+                  }
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: METRIC_LABELS[metric], font: { size: 12, weight: '600' }, color: textColor },
+                  ticks: { stepSize: 1, font: { size: 11 }, color: textColor },
+                  grid: { color: gridColor + '33' }
+                }
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.error('Activity graph error:', err);
+      }
+    }
+
+    document.getElementById('activityToggle').addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') return;
+      document.querySelectorAll('#activityToggle button').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      loadActivityGraph(e.target.dataset.mode);
+    });
+
+    document.getElementById('metricSelect').addEventListener('change', (e) => {
+      currentMetric = e.target.value;
+      loadActivityGraph(currentMode);
+    });
+
+    // ── GRAPH 2: Productivity Heatmap ──
+    const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    function greenIntensity(count) {
+      // Use theme-aligned green shading
+      if (count === 0) return getComputedStyle(document.documentElement).getPropertyValue('--bg-elevated').trim() || '#181818';
+      if (count <= 1) return 'rgba(126,201,126,0.3)';
+      if (count <= 3) return 'rgba(126,201,126,0.5)';
+      if (count <= 5) return 'rgba(126,201,126,0.7)';
+      return 'rgba(126,201,126,0.9)';
+    }
+
+    function loadHeatmap(data) {
+      const grid = document.getElementById('heatmapGrid');
+      grid.innerHTML = '';
+
+      const corner = document.createElement('div');
+      grid.appendChild(corner);
+      for (let h = 0; h < 24; h++) {
+        const lbl = document.createElement('div');
+        lbl.className = 'heatmap-hour';
+        lbl.textContent = h;
+        grid.appendChild(lbl);
+      }
+
+      for (let d = 0; d < 7; d++) {
+        const label = document.createElement('div');
+        label.className = 'heatmap-label';
+        label.textContent = DOW_NAMES[d];
+        grid.appendChild(label);
+
+        for (let h = 0; h < 24; h++) {
+          const cell = document.createElement('div');
+          cell.className = 'heatmap-cell';
+          const key = `${d}-${String(h).padStart(2, '0')}`;
+          const count = data.heatmap[key] || 0;
+          cell.style.background = greenIntensity(count);
+          cell.dataset.dow = d;
+          cell.dataset.hour = h;
+          cell.dataset.count = count;
+          cell.addEventListener('mouseenter', (e) => {
+            const dayName = DOW_NAMES[parseInt(e.target.dataset.dow)];
+            const hr = parseInt(e.target.dataset.hour);
+            const hrLabel = `${hr % 12 || 12} ${hr < 12 ? 'AM' : 'PM'}`;
+            const cnt = e.target.dataset.count;
+            showTooltip(e, `<strong>${dayName} ${hrLabel}</strong>Completions: ${cnt}`);
+          });
+          cell.addEventListener('mousemove', (e) => {
+            tooltip.style.left = Math.min(e.clientX + 12, window.innerWidth - 240) + 'px';
+            tooltip.style.top = Math.min(e.clientY - 10, window.innerHeight - 200) + 'px';
+          });
+          cell.addEventListener('mouseleave', hideTooltip);
+          grid.appendChild(cell);
+        }
+      }
+    }
+
+    // ── GRAPH 3: Priority Focus Matrix ──
+    const MATRIX_CONFIG = [
+      { priority: 1, label: 'High Priority', baseColor: [229, 57, 53] },
+      { priority: 2, label: 'Medium Priority', baseColor: [30, 136, 229] },
+      { priority: 3, label: 'Low Priority', baseColor: [249, 168, 37] },
+      { priority: 4, label: 'No Priority', baseColor: [120, 144, 156] }
+    ];
+
+    function loadMatrix(data) {
+      const grid = document.getElementById('matrixGrid');
+      grid.innerHTML = '';
+
+      MATRIX_CONFIG.forEach(cfg => {
+        const m = data.matrix[cfg.priority] || { created: 0, completed: 0, deleted: 0, carryOver: 0 };
+        const intensity = Math.min(1, m.completed / Math.max(1, 6));
+        const alpha = 0.3 + intensity * 0.7;
+        const [r, g, b] = cfg.baseColor;
+
+        const quad = document.createElement('div');
+        quad.className = 'matrix-quadrant';
+        quad.style.background = `rgba(${r},${g},${b},${alpha})`;
+        quad.innerHTML = `<div class="mq-count">${m.completed}</div><div class="mq-label">${cfg.label}</div>`;
+
+        quad.addEventListener('mouseenter', (e) => {
+          const rate = m.created > 0 ? Math.round((m.completed / m.created) * 100) : 0;
+          showTooltip(e,
+            `<strong>${cfg.label} (Today)</strong>
+            Created: ${m.created}<br>
+            Completed: ${m.completed}<br>
+            Deleted: ${m.deleted}<br>
+            Carry Over: ${m.carryOver}<br>
+            Completion Rate: ${rate}%`);
+        });
+        quad.addEventListener('mousemove', (e) => {
+          tooltip.style.left = Math.min(e.clientX + 12, window.innerWidth - 240) + 'px';
+          tooltip.style.top = Math.min(e.clientY - 10, window.innerHeight - 200) + 'px';
+        });
+        quad.addEventListener('mouseleave', hideTooltip);
+        grid.appendChild(quad);
+      });
+    }
+
+    // ── GRAPH 4: Carry Over Trend ──
+    let carryOverChart = null;
+    let carryOverTrendData = {};
+    let currentCarryOverFilter = 'all';
+
+    const DOW_ORDER = ['1', '2', '3', '4', '5', '6', '0'];
+    const DOW_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    function getCarryOverValues(trend, filter) {
+      return DOW_ORDER.map(dow => {
+        const d = trend[dow] || { fixed: 0, dynamic: 0, auto: 0, undo: 0 };
+        let total = 0;
+        if (filter === 'all') total = d.fixed + d.dynamic + d.auto;
+        else if (filter === 'fixed') total = d.fixed;
+        else if (filter === 'dynamic') total = d.dynamic;
+        else if (filter === 'auto') total = d.auto;
+        if (filter === 'all') total = Math.max(0, total - d.undo);
+        return total;
+      });
+    }
+
+    const CARRY_OVER_COLORS = {
+      all: { border: 'rgba(212,168,74,1)', bg: 'rgba(212,168,74,0.1)' },
+      fixed: { border: 'rgba(30,136,229,1)', bg: 'rgba(30,136,229,0.1)' },
+      dynamic: { border: 'rgba(126,201,126,1)', bg: 'rgba(126,201,126,0.1)' },
+      auto: { border: 'rgba(156,39,176,0.8)', bg: 'rgba(156,39,176,0.1)' }
+    };
+
+    const CARRY_OVER_LABEL = {
+      all: 'All Carry Overs',
+      fixed: 'Fixed Carry Over',
+      dynamic: 'Dynamic Carry Over',
+      auto: 'Auto Carry Over'
+    };
+
+    function renderCarryOverChart(trend, filter) {
+      let values = getCarryOverValues(trend, filter);
+      const cutoff = getCutoffIndex('week');
+      values = values.map((v, i) => i <= cutoff ? v : null);
+      const colors = CARRY_OVER_COLORS[filter];
+      const labels = DOW_LABELS;
+      const textColor = getChartTextColor();
+      const gridColor = getChartGridColor();
+      const borderColor = getChartBorderColor();
+
+      if (carryOverChart) carryOverChart.destroy();
+
+      const ctx = document.getElementById('carryOverChart').getContext('2d');
+      carryOverChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: CARRY_OVER_LABEL[filter], data: values,
+            borderColor: colors.border, backgroundColor: colors.bg,
+            borderWidth: 2.5, pointRadius: 3, pointHoverRadius: 6,
+            pointBackgroundColor: colors.border,
+            pointHoverBackgroundColor: '#fff', pointHoverBorderWidth: 2.5,
+            pointHoverBorderColor: colors.border,
+            tension: 0.35, fill: true
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          animation: { duration: 600, easing: 'easeOutQuart' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            tooltip: {
+              backgroundColor: 'rgba(10,10,10,0.95)', titleColor: '#fff', bodyColor: '#ccc',
+              titleFont: { size: 13, weight: '700' }, bodyFont: { size: 12 },
+              padding: 12, cornerRadius: 10,
+              callbacks: {
+                title(items) { return items[0].label; },
+                label(item) { return `${CARRY_OVER_LABEL[filter]}: ${item.parsed.y}`; }
+              }
+            },
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { display: false }, border: { display: true, color: borderColor },
+              ticks: { font: { size: 12, weight: '600' }, color: textColor, maxRotation: 0, minRotation: 0, autoSkip: false }
+            },
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Tasks Carried Over', font: { size: 12, weight: '600' }, color: textColor },
+              ticks: { stepSize: 1, font: { size: 11 }, color: textColor },
+              grid: { color: gridColor + '33' }
+            }
+          }
+        }
+      });
+    }
+
+    async function loadCarryOverTrend() {
+      try {
+        carryOverTrendData = await window.historyReportAPI.getCarryOverTrend();
+        renderCarryOverChart(carryOverTrendData, currentCarryOverFilter);
+      } catch (err) {
+        console.error('Carry over trend error:', err);
+      }
+    }
+
+    document.getElementById('carryOverFilter').addEventListener('change', (e) => {
+      currentCarryOverFilter = e.target.value;
+      renderCarryOverChart(carryOverTrendData, currentCarryOverFilter);
+    });
+
+    // ── Master load ──
+    async function loadAnalytics() {
+      try {
+        const data = await window.historyReportAPI.getAnalyticsData(currentMode);
+        loadHeatmap(data);
+        loadMatrix(data);
+      } catch (err) {
+        console.error('Analytics load error:', err);
+      }
+      loadActivityGraph(currentMode);
+      loadCarryOverTrend();
+    }
+
+    if (window.historyReportAPI && window.historyReportAPI.onTaskUpdated) {
+      window.historyReportAPI.onTaskUpdated(() => {
+        console.log('📊 Analytics: task updated, refreshing...');
+        loadAnalytics();
+        loadReport();
+      });
+    }
+
+    loadAnalytics();
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

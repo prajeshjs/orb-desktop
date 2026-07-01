@@ -1,0 +1,415 @@
+<!doctype html>
+<html data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Task Creation</title>
+  <link rel="stylesheet" href="theme.css">
+  <script>
+    (async () => {
+      try {
+        const t = await window.settingsAPI.getTheme();
+        document.documentElement.setAttribute('data-theme', t || 'dark');
+      } catch(e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+      window.settingsAPI?.onThemeChanged?.((theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+      });
+    })();
+  </script>
+  <style>
+    * { margin: 0; padding: 0; }
+
+    body {
+      padding: 12px;
+      background: var(--bg);
+      color: var(--text);
+      animation: fadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow-sm);
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      transition: border-color 0.25s ease;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-top: 6px;
+      margin-bottom: 2px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1.5px solid var(--border);
+      font-size: 13px;
+      background: var(--bg-input);
+      color: var(--text);
+      font-family: inherit;
+      outline: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    input:focus, select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .row>div {
+      flex: 1;
+    }
+
+    .priority-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .actions {
+      margin-top: 8px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1.5px solid transparent;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { animation: buttonPress 0.15s ease; }
+
+    .btn-primary {
+      background: var(--btn-primary-bg);
+      color: var(--btn-primary-text);
+    }
+    .btn-primary:hover {
+      background: var(--btn-primary-hover);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border-color: var(--btn-secondary-border);
+    }
+    .btn-secondary:hover {
+      background: var(--btn-secondary-hover);
+    }
+
+    /* Repeat & follow-up */
+    input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    .prio-btn small {
+      display: block;
+      opacity: 0.85;
+      font-weight: 400;
+    }
+  </style>
+</head>
+
+<body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+  <div class="card">
+    <h1>New Task</h1>
+
+    <label for="taskText">Task</label>
+    <input id="taskText" type="text" placeholder="Give mail to HR" />
+
+    <div class="row">
+      <div>
+        <label>Date</label>
+        <input type="date" id="taskDate" style="margin-top: 4px;" />
+      </div>
+      <div>
+        <label>Time</label>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <select id="hour12">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>7</option><option>8</option>
+            <option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+          <span style="color:var(--text-muted)">:</span>
+          <select id="minute">
+            <option>00</option><option>05</option><option>10</option><option>15</option>
+            <option>20</option><option>25</option><option>30</option><option>35</option>
+            <option>40</option><option>45</option><option>50</option><option>55</option>
+          </select>
+          <select id="ampm">
+            <option value="AM">AM</option>
+            <option value="PM">PM</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Reminder Before Task</label>
+        <div style="display:flex; gap:4px;">
+          <select id="durationUnit">
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+          </select>
+          <select id="durationValue"></select>
+        </div>
+      </div>
+    </div>
+
+    <label>Priority</label>
+    <div class="priority-grid">
+      <button class="tp-prio-btn prio-1" data-q="1">
+        🔴 RED
+        <small>Urgent + Important</small>
+      </button>
+      <button class="tp-prio-btn prio-2" data-q="2">
+        🔵 BLUE
+        <small>Important, not urgent</small>
+      </button>
+      <button class="tp-prio-btn prio-3" data-q="3">
+        🟡 YELLOW
+        <small>Urgent, not important</small>
+      </button>
+      <button class="tp-prio-btn prio-4" data-q="4">
+        ⚪ GRAY
+        <small>Low priority</small>
+      </button>
+    </div>
+
+    <!-- REPEAT EVERYDAY OPTION -->
+    <div style="margin-top:10px;display:flex;align-items:center;gap:6px;">
+      <input type="checkbox" id="repeatDaily" style="width:auto;margin:0;cursor:pointer;" />
+      <label for="repeatDaily" style="display:inline;margin:0;font-size:12px;cursor:pointer;"><i data-lucide="repeat" class="neon-icon neon-icon-sm"></i> Repeat Everyday</label>
+    </div>
+
+    <!-- FOLLOW-UP FREQUENCY DROPDOWN -->
+    <label for="followUpFrequency" style="margin-top:10px;">Follow-up Frequency (minutes)</label>
+    <select id="followUpFrequency">
+      <option value="10" selected>10</option>
+      <option value="15">15</option>
+      <option value="20">20</option>
+      <option value="25">25</option>
+      <option value="30">30</option>
+      <option value="35">35</option>
+      <option value="40">40</option>
+      <option value="45">45</option>
+      <option value="50">50</option>
+      <option value="55">55</option>
+    </select>
+
+    <div class="actions">
+      <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveBtn">Save</button>
+    </div>
+  </div>
+
+  <script>
+    // ── Duration Unit/Value dropdown logic ──
+    const MINUTE_VALUES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60];
+    const HOUR_VALUES = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12];
+
+    function populateDurationValues(unit, selectEl, defaultVal) {
+      const values = unit === 'hours' ? HOUR_VALUES : MINUTE_VALUES;
+      selectEl.innerHTML = '';
+      values.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        selectEl.appendChild(opt);
+      });
+      if (defaultVal !== undefined) {
+        selectEl.value = String(defaultVal);
+      }
+    }
+
+    const durationUnitEl = document.getElementById('durationUnit');
+    const durationValueEl = document.getElementById('durationValue');
+    populateDurationValues('minutes', durationValueEl, 10);
+    durationUnitEl.addEventListener('change', () => {
+      populateDurationValues(durationUnitEl.value, durationValueEl);
+    });
+
+    const buttons = document.querySelectorAll('.tp-prio-btn');
+    let selectedQuadrant = null;
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedQuadrant = parseInt(btn.dataset.q, 10);
+      });
+    });
+
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+      window.close();
+    });
+
+    function resetForm() {
+      document.getElementById('taskText').value = '';
+      document.getElementById('durationUnit').value = 'minutes';
+      populateDurationValues('minutes', document.getElementById('durationValue'), 10);
+      const todayDate = new Date();
+      const localToday = new Date(todayDate.getTime() - (todayDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      document.getElementById('taskDate').value = localToday;
+      document.getElementById('hour12').value = '1';
+      document.getElementById('minute').value = '00';
+      document.getElementById('ampm').value = 'AM';
+      document.querySelectorAll('.tp-prio-btn').forEach(b => b.classList.remove('active'));
+      selectedQuadrant = null;
+      document.getElementById('repeatDaily').checked = false;
+      document.getElementById('followUpFrequency').value = '10';
+    }
+
+    function focusTaskField() {
+      setTimeout(() => {
+        document.getElementById('taskText').focus();
+        document.getElementById('taskText').select();
+      }, 50);
+    }
+
+    function showToast(message, duration = 2000) {
+      const existingToast = document.querySelector('.tp-toast');
+      if (existingToast) existingToast.remove();
+
+      const toast = document.createElement('div');
+      toast.className = 'tp-toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const task = document.getElementById('taskText').value.trim();
+      const dateVal = document.getElementById('taskDate').value;
+      const h12 = parseInt(document.getElementById('hour12').value, 10);
+      const mStrRaw = document.getElementById('minute').value;
+      const ampm = document.getElementById('ampm').value;
+      const dUnit = document.getElementById('durationUnit').value;
+      const dVal = parseFloat(document.getElementById('durationValue').value);
+      const duration = dUnit === 'hours' ? Math.round(dVal * 60) : Math.round(dVal);
+
+      if (!task || !dateVal || !h12 || isNaN(duration) || !selectedQuadrant) {
+        showToast('<i data-lucide="alert-triangle" class="neon-icon neon-icon-sm"></i> Please fill all required fields!', 2000);
+        return;
+      }
+
+      const mStr = mStrRaw.padStart(2, '0');
+      let h24 = h12;
+      if (ampm === 'PM' && h12 !== 12) h24 = h12 + 12;
+      if (ampm === 'AM' && h12 === 12) h24 = 0;
+      const hStr = String(h24).padStart(2, '0');
+      const time = `${hStr}:${mStr}`;
+
+      const [year, month, day] = dateVal.split('-').map(Number);
+      const due = new Date();
+      due.setFullYear(year, month - 1, day);
+      due.setHours(h24, parseInt(mStr, 10), 0, 0);
+
+      if (due.getTime() < new Date().getTime()) {
+        showToast('time is already crossed', 2000);
+        return;
+      }
+
+      const remind = new Date(due.getTime() - duration * 60 * 1000);
+
+      const payload = {
+        task, time, duration,
+        quadrant: selectedQuadrant,
+        createdAt: new Date().toISOString(),
+        dueAt: due.toISOString(),
+        remindAt: remind.toISOString(),
+        repeatDaily: document.getElementById('repeatDaily').checked ? 1 : 0,
+        followUpFrequency: parseInt(document.getElementById('followUpFrequency').value, 10) || 10,
+      };
+
+      try {
+        await window.taskAPI.saveTask(payload);
+      } catch (err) {
+        showToast('<i data-lucide="x" class="neon-icon neon-icon-sm"></i> Failed to save task!', 2000);
+        return;
+      }
+
+      resetForm();
+      setTimeout(() => {
+        focusTaskField();
+        showToast('<i data-lucide="check-circle-2" class="neon-icon neon-icon-sm"></i> Task created!', 2000);
+      }, 150);
+    });
+
+    window.addEventListener('load', () => {
+      // Initialize date to today
+      const todayDate = new Date();
+      const localToday = new Date(todayDate.getTime() - (todayDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+      document.getElementById('taskDate').value = localToday;
+      focusTaskField();
+    });
+  </script>
+
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+
+</html>

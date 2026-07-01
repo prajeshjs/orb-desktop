@@ -1,0 +1,137 @@
+<!doctype html>
+<html data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pre-Alert</title>
+    <link rel="stylesheet" href="theme.css">
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+      * { margin: 0; padding: 0; }
+
+      body {
+        padding: 10px 12px;
+        background: var(--bg-card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: notifSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+
+      .title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+
+      .task-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 4px;
+      }
+
+      .message {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        line-height: 1.4;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 6px;
+        border: 1.5px solid transparent;
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .btn:hover {
+        background: var(--btn-primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn:active {
+        animation: buttonPress 0.15s ease;
+      }
+    </style>
+  </head>
+  <body>
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a85" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+</svg>
+
+    <div class="header">
+      <span class="title"><i data-lucide="zap" class="neon-icon neon-icon-sm"></i> Pre-Alert</span>
+    </div>
+    <div class="task-name" id="taskName"></div>
+    <div class="message" id="message">Follow-up will start soon for this task.</div>
+    <button class="btn" id="okBtn">OK</button>
+
+    <script>
+      window.electronPreAlert?.onData?.((data) => {
+        document.getElementById('taskName').textContent = data.task || 'Unknown Task';
+        if (data.message) {
+          document.getElementById('message').textContent = data.message;
+        }
+      });
+
+      document.getElementById('okBtn').onclick = () => {
+        if (window.electronPreAlert && window.electronPreAlert.action) {
+          window.electronPreAlert.action(null, 'ok');
+        }
+        window.close();
+      };
+
+      // auto-close after 10s
+      setTimeout(() => window.close(), 10000);
+    </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  });
+</script>
+</body>
+</html>

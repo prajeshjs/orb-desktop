@@ -1,0 +1,134 @@
+<!doctype html>
+<html data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Carry Over</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="theme.css">
+    <script>
+      (async () => {
+        try {
+          const t = await window.settingsAPI.getTheme();
+          document.documentElement.setAttribute('data-theme', t || 'dark');
+        } catch(e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        window.settingsAPI?.onThemeChanged?.((theme) => {
+          document.documentElement.setAttribute('data-theme', theme);
+        });
+      })();
+    </script>
+    <style>
+      * { margin: 0; padding: 0; }
+
+      body {
+        padding: 10px 12px;
+        background: var(--bg-card);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        animation: notifSlide 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+      }
+
+      .title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .task-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 6px;
+      }
+
+      .desc {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 6px;
+      }
+
+      button {
+        flex: 1;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1.5px solid var(--border);
+        background: var(--btn-secondary-bg);
+        color: var(--btn-secondary-text);
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        border-color: var(--border-hover);
+        background: var(--btn-secondary-hover);
+      }
+
+      button:active {
+        animation: buttonPress 0.15s ease;
+      }
+
+      #fixedBtn {
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-text);
+        border-color: transparent;
+      }
+      #fixedBtn:hover {
+        background: var(--btn-primary-hover);
+      }
+      .orb-icon { width: 14px; height: 14px; }
+      .orb-icon.sm { width: 12px; height: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="title"><i data-lucide="package" class="orb-icon"></i> Carry Over to Tomorrow</div>
+    <div class="task-name" id="taskName"></div>
+    <div class="desc">Choose carry-over type:</div>
+    <div class="button-group">
+      <button id="fixedBtn"><i data-lucide="pin" class="orb-icon sm"></i> Fixed (same time)</button>
+      <button id="dynamicBtn"><i data-lucide="refresh-cw" class="orb-icon sm"></i> Dynamic (8 AM)</button>
+    </div>
+
+    <script>
+      let currentTask = null;
+
+      window.carryoverAPI.onData((task) => {
+        currentTask = task;
+        document.getElementById('taskName').textContent = task.task || 'Unknown Task';
+      });
+
+      document.getElementById('fixedBtn').onclick = () => {
+        if (currentTask) {
+          window.carryoverAPI.chooseOption(currentTask.id, 'fixed');
+        }
+      };
+
+      document.getElementById('dynamicBtn').onclick = () => {
+        if (currentTask) {
+          window.carryoverAPI.chooseOption(currentTask.id, 'dynamic');
+        }
+      };
+      lucide.createIcons();
+    </script>
+  </body>
+</html>
