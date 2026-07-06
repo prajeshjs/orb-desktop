@@ -346,7 +346,7 @@
       const duration = dUnit === 'hours' ? Math.round(dVal * 60) : Math.round(dVal);
 
       if (!task || !dateVal || !h12 || isNaN(duration) || !selectedQuadrant) {
-        showToast('<i data-lucide="alert-triangle" class="neon-icon neon-icon-sm"></i> Please fill all required fields!', 2000);
+        showToast('⚠️ Please fill all required fields!', 2000);
         return;
       }
 
@@ -382,14 +382,14 @@
       try {
         await window.taskAPI.saveTask(payload);
       } catch (err) {
-        showToast('<i data-lucide="x" class="neon-icon neon-icon-sm"></i> Failed to save task!', 2000);
+        showToast('❌ Failed to save task!', 2000);
         return;
       }
 
       resetForm();
       setTimeout(() => {
         focusTaskField();
-        showToast('<i data-lucide="check-circle-2" class="neon-icon neon-icon-sm"></i> Task created!', 2000);
+        showToast('✅ Task created!', 2000);
       }, 150);
     });
 

@@ -632,7 +632,7 @@ function _showWinFollowupPopup(task, durationMs, resolve) {
 
   const display = screen.getPrimaryDisplay();
   const width = 364;
-  const height = 120;
+  const height = 170;
 
   const win = new BrowserWindow({
     width,
@@ -1537,6 +1537,13 @@ function createHomeWindow() {
   homeWindow.once('ready-to-show', () => {
     homeWindow.show();
     homeWindow.focus();
+    // Briefly force to front (needed when launched from NSIS installer's elevated process)
+    homeWindow.setAlwaysOnTop(true);
+    setTimeout(() => {
+      if (homeWindow && !homeWindow.isDestroyed()) {
+        homeWindow.setAlwaysOnTop(false);
+      }
+    }, 500);
   });
 
   homeWindow.on('closed', () => {
